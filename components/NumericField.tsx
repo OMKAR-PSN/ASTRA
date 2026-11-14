@@ -39,8 +39,7 @@ export function NumericField({ label, unit, hint, value, error, onChangeText }: 
 const styles = StyleSheet.create({
   wrapper: {
     gap: spacing.xs / 2,
-    flexBasis: 240,
-    flexGrow: 1,
+    minWidth: 0,
   },
   label: {
     fontFamily: fonts.semibold,
@@ -63,6 +62,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
+    minWidth: 0,
     minHeight: 48,
     fontFamily: fonts.semibold,
     fontSize: 18,

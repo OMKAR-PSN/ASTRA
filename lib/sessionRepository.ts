@@ -151,5 +151,5 @@ function createWebRepository(): SessionRepository {
 
 export const sessionRepository = Platform.OS === 'web' ? createWebRepository() : createMemoryRepository();
 export const storageDescription = Platform.OS === 'web'
-  ? 'Offline storage: browser IndexedDB'
-  : 'In-memory fallback (native data is not persisted)';
+  ? 'Browser saves are stored locally in IndexedDB after successful persistence.'
+  : 'Native storage is session-only in memory; data is not persisted.';

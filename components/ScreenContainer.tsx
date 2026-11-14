@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     flexDirection: 'column',
-    backgroundColor: colors.navy[900],
+    backgroundColor: colors.navy[950],
   },
   rootDesktop: {
     flexDirection: 'row',
@@ -57,12 +57,13 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: spacing.sm,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.xl,
+    paddingTop: spacing.xs,
+    paddingBottom: 112,
   },
   contentDesktop: {
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xl,
   },
   column: {
     width: '100%',

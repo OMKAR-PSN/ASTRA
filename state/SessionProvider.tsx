@@ -1,4 +1,9 @@
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { PrimaryButton } from '@/components/PrimaryButton';
+import { colors, fonts, spacing } from '@/constants/theme';
 
 import { sessionRepository, storageDescription } from '@/lib/sessionRepository';
 import { initialSessionState, type SessionState } from '@/state/sessionReducer';
@@ -20,19 +25,26 @@ const SessionContext = createContext<SessionContextValue | null>(null);
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<SessionState>(initialSessionState);
   const [ready, setReady] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   useEffect(() => {
     let active = true;
+    setLoading(true);
+    setLoadError(null);
     sessionRepository.load().then((saved) => {
       if (active) {
         setState((current) => ({ ...current, checkIns: saved.checkIns, reports: saved.reports }));
         setReady(true);
       }
     }).catch(() => {
-      if (active) setReady(true);
+      if (active) setLoadError('Stored mission data could not be restored. Your existing data has not been changed.');
+    }).finally(() => {
+      if (active) setLoading(false);
     });
     return () => { active = false; };
-  }, []);
+  }, [loadAttempt]);
 
   const saveCheckIn = useCallback(async (draft: CheckInDraft) => {
     const checkIn = await sessionRepository.saveCheckIn(draft, new Date().toISOString());
@@ -73,9 +85,35 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     retryReport,
   }), [state, ready, saveCheckIn, confirmReport, setLinkAvailable, retryReport]);
 
-  if (!ready) return null;
+  if (!ready) {
+    return createElement(
+      SafeAreaView,
+      { style: recoveryStyles.root },
+      createElement(View, { style: recoveryStyles.card },
+        loadError
+          ? createElement(Text, { style: recoveryStyles.title }, 'Storage unavailable')
+          : createElement(ActivityIndicator, { size: 'large', color: colors.primary[400], accessibilityLabel: 'Restoring stored mission data' }),
+        createElement(Text, { style: recoveryStyles.message, accessibilityRole: loadError ? 'alert' : undefined },
+          loadError ?? 'Restoring your mission data…'),
+        loadError
+          ? createElement(PrimaryButton, {
+              label: loading ? 'Retrying…' : 'Retry',
+              disabled: loading,
+              onPress: () => setLoadAttempt((attempt) => attempt + 1),
+            })
+          : null,
+      ),
+    );
+  }
   return createElement(SessionContext.Provider, { value }, children);
 }
+
+const recoveryStyles = StyleSheet.create({
+  root: { flex: 1, justifyContent: 'center', padding: spacing.md, backgroundColor: colors.navy[900] },
+  card: { width: '100%', maxWidth: 480, alignSelf: 'center', gap: spacing.sm, padding: spacing.md, borderRadius: 12, borderWidth: 1, borderColor: colors.navy[600], backgroundColor: colors.navy[800] },
+  title: { fontFamily: fonts.bold, fontSize: 22, color: colors.offWhite },
+  message: { fontFamily: fonts.regular, fontSize: 16, lineHeight: 24, color: colors.slate[300] },
+});
 
 export function useSession(): SessionContextValue {
   const context = useContext(SessionContext);

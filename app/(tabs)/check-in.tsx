@@ -37,7 +37,7 @@ const textsFrom = (readings: Readings): NumericTexts => ({
 
 export default function CheckInScreen() {
   const router = useRouter();
-  const { saveCheckIn } = useSession();
+  const { saveCheckIn, storageDescription } = useSession();
 
   const [texts, setTexts] = useState<NumericTexts>(emptyTexts);
   const [scales, setScales] = useState<Pick<Readings, 'mood' | 'stress'>>({ mood: null, stress: null });
@@ -210,7 +210,7 @@ export default function CheckInScreen() {
       <View style={styles.footer}>
         {saved ? (
           <View style={styles.savedRow}>
-            <StatusPill label="Saved for this demo session" tone="primary" />
+            <StatusPill label={storageDescription.includes('IndexedDB') ? 'Saved locally' : 'Session-only storage'} tone="primary" />
             <PrimaryButton
               variant="secondary"
               label="View dashboard"

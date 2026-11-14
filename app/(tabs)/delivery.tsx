@@ -15,7 +15,7 @@ export default function DeliveryScreen() {
   return (
     <ScreenContainer
       title="Delivery"
-      subtitle="Outbox for this demo session. Reports stay queued until a verified ground receiver confirms receipt."
+      subtitle="Reports remain queued until an implemented receiver confirms receipt. No receiver is connected in this prototype."
     >
       <Text style={styles.footnote}>{storageDescription}</Text>
       <Grid>

@@ -10,13 +10,14 @@ import { colors, fonts, spacing } from '@/constants/theme';
 import { useSession } from '@/state/SessionProvider';
 
 export default function DeliveryScreen() {
-  const { reports, linkAvailable, setLinkAvailable, retryReport } = useSession();
+  const { reports, linkAvailable, setLinkAvailable, retryReport, storageDescription } = useSession();
 
   return (
     <ScreenContainer
       title="Delivery"
       subtitle="Outbox for this demo session. Reports stay queued until a verified ground receiver confirms receipt."
     >
+      <Text style={styles.footnote}>{storageDescription}</Text>
       <Grid>
         <GridItem>
           <Panel title="Simulated link">
@@ -25,7 +26,7 @@ export default function DeliveryScreen() {
               <View style={styles.toggleText}>
                 <Text style={styles.toggleLabel}>Simulate communications outage</Text>
                 <Text style={styles.toggleHint}>
-                  Demo control. Changing the link only updates this indicator. It never changes a report's status.
+                  {"Demo control. Changing the link only updates this indicator. It never changes a report's status."}
                 </Text>
               </View>
               <Switch

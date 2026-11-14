@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
@@ -12,7 +12,6 @@ import { ExplanationPanel } from '@/components/ExplanationPanel';
 import { ComparisonTable } from '@/components/ComparisonTable';
 import { StatusPill, deliveryStatusDisplay } from '@/components/StatusPill';
 import { colors, fonts, spacing } from '@/constants/theme';
-import { crewProfile } from '@/fixtures/crew';
 import { formatTimestamp } from '@/lib/format';
 import { buildReadingTiles } from '@/lib/readingTiles';
 import { createReportSnapshot } from '@/lib/snapshot';
@@ -21,6 +20,9 @@ import { useSession } from '@/state/SessionProvider';
 export default function ReportPreviewScreen() {
   const router = useRouter();
   const { latestCheckIn, findReportForCheckIn, confirmReport } = useSession();
+  const [confirming, setConfirming] = useState(false);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+  const [confirmedMessage, setConfirmedMessage] = useState(false);
 
   const queued = latestCheckIn ? findReportForCheckIn(latestCheckIn.id) : undefined;
   const snapshot = useMemo(() => {
@@ -118,10 +120,24 @@ export default function ReportPreviewScreen() {
           ) : (
             <View style={styles.actions}>
               <PrimaryButton
-                label="Confirm and queue"
-                onPress={() => confirmReport(latestCheckIn.id)}
+                label={confirming ? 'Saving report…' : 'Confirm and queue'}
+                disabled={confirming}
+                onPress={async () => {
+                  setConfirming(true);
+                  setConfirmError(null);
+                  try {
+                    await confirmReport(latestCheckIn.id);
+                    setConfirmedMessage(true);
+                  } catch {
+                    setConfirmError('Could not save this report to offline storage. Please try again.');
+                  } finally {
+                    setConfirming(false);
+                  }
+                }}
                 accessibilityHint="Creates one queued report. It is not delivered in this prototype."
               />
+              {confirmedMessage ? <Text style={styles.muted}>Report saved to the offline outbox. It has not been delivered.</Text> : null}
+              {confirmError ? <Text accessibilityRole="alert" style={styles.muted}>{confirmError}</Text> : null}
             </View>
           )}
         </GridItem>

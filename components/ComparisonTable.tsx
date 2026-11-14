@@ -13,7 +13,7 @@ const columns = ['Metric', 'Baseline', 'Current', 'Change', 'Percent'];
 export function ComparisonTable({ comparisons }: ComparisonTableProps) {
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-      <View style={styles.table} accessibilityRole="table">
+      <View style={styles.table}>
         <View style={[styles.row, styles.headerRow]}>
           {columns.map((column, index) => (
             <Text key={column} style={[styles.cell, styles.headerCell, index === 0 && styles.metricCell]}>

@@ -1,13 +1,16 @@
-import { createContext, createElement, useCallback, useContext, useMemo, useReducer, type ReactNode } from 'react';
+import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
-import { initialSessionState, sessionReducer, type SessionState } from '@/state/sessionReducer';
+import { sessionRepository, storageDescription } from '@/lib/sessionRepository';
+import { initialSessionState, type SessionState } from '@/state/sessionReducer';
 import type { CheckIn, CheckInDraft, ReportRecord } from '@/types/astra';
 
 type SessionContextValue = SessionState & {
+  ready: boolean;
+  storageDescription: string;
   latestCheckIn: CheckIn | null;
   findReportForCheckIn: (checkInId: string) => ReportRecord | undefined;
-  saveCheckIn: (draft: CheckInDraft) => void;
-  confirmReport: (checkInId: string) => void;
+  saveCheckIn: (draft: CheckInDraft) => Promise<void>;
+  confirmReport: (checkInId: string) => Promise<void>;
   setLinkAvailable: (available: boolean) => void;
   retryReport: (reportId: string) => void;
 };
@@ -15,43 +18,67 @@ type SessionContextValue = SessionState & {
 const SessionContext = createContext<SessionContextValue | null>(null);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(sessionReducer, initialSessionState);
+  const [state, setState] = useState<SessionState>(initialSessionState);
+  const [ready, setReady] = useState(false);
 
-  const saveCheckIn = useCallback(
-    (draft: CheckInDraft) => dispatch({ type: 'saveCheckIn', draft, recordedAt: new Date().toISOString() }),
-    [],
-  );
-  const confirmReport = useCallback(
-    (checkInId: string) => dispatch({ type: 'confirmReport', checkInId, createdAt: new Date().toISOString() }),
-    [],
-  );
-  const setLinkAvailable = useCallback(
-    (available: boolean) => dispatch({ type: 'setLinkAvailable', available }),
-    [],
-  );
-  const retryReport = useCallback((reportId: string) => dispatch({ type: 'retryReport', reportId }), []);
+  useEffect(() => {
+    let active = true;
+    sessionRepository.load().then((saved) => {
+      if (active) {
+        setState((current) => ({ ...current, checkIns: saved.checkIns, reports: saved.reports }));
+        setReady(true);
+      }
+    }).catch(() => {
+      if (active) setReady(true);
+    });
+    return () => { active = false; };
+  }, []);
 
-  const value = useMemo<SessionContextValue>(
-    () => ({
-      ...state,
-      latestCheckIn: state.checkIns.length > 0 ? state.checkIns[state.checkIns.length - 1] : null,
-      findReportForCheckIn: (checkInId: string) =>
-        state.reports.find((report) => report.checkInId === checkInId),
-      saveCheckIn,
-      confirmReport,
-      setLinkAvailable,
-      retryReport,
-    }),
-    [state, saveCheckIn, confirmReport, setLinkAvailable, retryReport],
-  );
+  const saveCheckIn = useCallback(async (draft: CheckInDraft) => {
+    const checkIn = await sessionRepository.saveCheckIn(draft, new Date().toISOString());
+    setState((current) => ({ ...current, checkIns: [...current.checkIns, checkIn] }));
+  }, []);
 
+  const confirmReport = useCallback(async (checkInId: string) => {
+    const report = await sessionRepository.confirmReport(checkInId, new Date().toISOString());
+    setState((current) => current.reports.some((item) => item.id === report.id)
+      ? current
+      : { ...current, reports: [...current.reports, report] });
+  }, []);
+
+  const setLinkAvailable = useCallback((available: boolean) => {
+    setState((current) => ({ ...current, linkAvailable: available }));
+  }, []);
+
+  const retryReport = useCallback((reportId: string) => {
+    setState((current) => ({
+      ...current,
+      reports: current.reports.map((report) => report.id === reportId && report.status === 'queued'
+        ? { ...report, retryNote: current.linkAvailable
+          ? 'Ground receiver unavailable. Report remains queued and was not delivered.'
+          : 'Communications link unavailable. Report remains queued and was not delivered.' }
+        : report),
+    }));
+  }, []);
+
+  const value = useMemo<SessionContextValue>(() => ({
+    ...state,
+    ready,
+    storageDescription,
+    latestCheckIn: state.checkIns.at(-1) ?? null,
+    findReportForCheckIn: (checkInId) => state.reports.find((report) => report.checkInId === checkInId),
+    saveCheckIn,
+    confirmReport,
+    setLinkAvailable,
+    retryReport,
+  }), [state, ready, saveCheckIn, confirmReport, setLinkAvailable, retryReport]);
+
+  if (!ready) return null;
   return createElement(SessionContext.Provider, { value }, children);
 }
 
 export function useSession(): SessionContextValue {
   const context = useContext(SessionContext);
-  if (!context) {
-    throw new Error('useSession must be used inside SessionProvider');
-  }
+  if (!context) throw new Error('useSession must be used inside SessionProvider');
   return context;
 }

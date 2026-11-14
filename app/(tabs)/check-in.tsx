@@ -45,6 +45,8 @@ export default function CheckInScreen() {
   const [activityNote, setActivityNote] = useState('');
   const [errors, setErrors] = useState<DraftErrors>({});
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const updateText = (key: NumericKey, value: string) => {
     setTexts((current) => ({ ...current, [key]: value }));
@@ -60,7 +62,7 @@ export default function CheckInScreen() {
     setSaved(false);
   };
 
-  const save = () => {
+  const save = async () => {
     const readings = { ...emptyReadings, ...scales };
     const result = validateDraft({ readings, symptoms, activityNote }, texts);
     if (!result.ok) {
@@ -69,8 +71,17 @@ export default function CheckInScreen() {
       return;
     }
     setErrors({});
-    saveCheckIn({ readings: result.readings, symptoms, activityNote: activityNote.trim() });
-    setSaved(true);
+    setSaveError(null);
+    setSaving(true);
+    try {
+      await saveCheckIn({ readings: result.readings, symptoms, activityNote: activityNote.trim() });
+      setSaved(true);
+    } catch {
+      setSaved(false);
+      setSaveError('Could not save this check-in to offline storage. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -192,8 +203,9 @@ export default function CheckInScreen() {
       </Grid>
 
       {Object.keys(errors).length > 0 ? (
-        <Text style={styles.formError}>Fix the highlighted fields before saving.</Text>
+        <Text accessibilityRole="alert" style={styles.formError}>Fix the highlighted fields before saving.</Text>
       ) : null}
+      {saveError ? <Text accessibilityRole="alert" style={styles.formError}>{saveError}</Text> : null}
 
       <View style={styles.footer}>
         {saved ? (
@@ -206,7 +218,7 @@ export default function CheckInScreen() {
             />
           </View>
         ) : null}
-        <PrimaryButton label="Save demo check-in" onPress={save} />
+        <PrimaryButton label={saving ? 'Saving check-in…' : 'Save demo check-in'} disabled={saving} onPress={save} />
       </View>
     </ScreenContainer>
   );

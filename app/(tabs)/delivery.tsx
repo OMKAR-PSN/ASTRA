@@ -1,3 +1,5 @@
+import { useRouter } from 'expo-router';
+import { PrimaryButton } from '@/components/PrimaryButton';
 import { StyleSheet, Switch, Text, View } from 'react-native';
 
 import { EmptyState } from '@/components/EmptyState';
@@ -7,17 +9,20 @@ import { OutboxItem } from '@/components/OutboxItem';
 import { Panel } from '@/components/Panel';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { colors, fonts, spacing } from '@/constants/theme';
+import { receiverUrl } from '@/lib/receiver';
 import { useSession } from '@/state/SessionProvider';
 
 export default function DeliveryScreen() {
+  const router = useRouter();
   const { reports, linkAvailable, setLinkAvailable, retryReport, storageDescription } = useSession();
 
   return (
     <ScreenContainer
-      title="Delivery"
-      subtitle="Reports remain queued until an implemented receiver confirms receipt. No receiver is connected in this prototype."
+      title="Reports & sync"
+      subtitle="Send synthetic reports to the simulated ground receiver."
     >
       <Text style={styles.footnote}>{storageDescription}</Text>
+      <PrimaryButton label="Preview latest report" onPress={() => router.navigate('/report')} />
       <Grid>
         <GridItem>
           <Panel title="Simulated link">
@@ -55,7 +60,7 @@ export default function DeliveryScreen() {
               </View>
             )}
             <Text style={styles.footnote}>
-              Prototype only. No receiver is connected, so no report can be marked delivered here.
+              {receiverUrl ? 'Acknowledgement appears after the simulated receiver confirms receipt.' : 'Ground receiver URL is not configured. Reports stay in the local outbox.'}
             </Text>
           </Panel>
         </GridItem>

@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
+import { BodyMap } from '@/components/BodyMap';
 import { ComparisonTable } from '@/components/ComparisonTable';
 import { EmptyState } from '@/components/EmptyState';
 import { ExplanationPanel } from '@/components/ExplanationPanel';
@@ -28,7 +29,7 @@ export default function DashboardScreen() {
 
   if (!latestCheckIn || !snapshot) {
     return (
-      <ScreenContainer title="Dashboard" subtitle="Latest readings and trends appear after a check-in is saved.">
+      <ScreenContainer title="Health trends" subtitle="Latest readings and trends appear after a check-in is saved.">
         <Panel>
           <EmptyState
             title="No readings to show"
@@ -44,7 +45,7 @@ export default function DashboardScreen() {
 
   return (
     <ScreenContainer
-      title="Dashboard"
+      title="Health trends"
       subtitle={`Compared with your synthetic baseline of ${syntheticBaseline.heartRateBpm} bpm heart rate.`}
     >
       <Grid>
@@ -52,15 +53,24 @@ export default function DashboardScreen() {
           <Panel title="Latest reading">
             <Text style={styles.timestamp}>{`Recorded ${formatTimestamp(latestCheckIn.recordedAt)} · ${latestCheckIn.id}`}</Text>
             <View style={styles.tiles}>
-              {buildReadingTiles(latestCheckIn.readings).map((tile) => (
+              {buildReadingTiles(latestCheckIn.readings, snapshot.comparisons).map((tile) => (
                 <MetricTile
                   key={tile.label}
                   label={tile.label}
                   value={tile.value}
                   unit={tile.unit}
+                  status={tile.status}
+                    measuredAt={latestCheckIn.recordedAt}
                 />
               ))}
             </View>
+          </Panel>
+        </GridItem>
+
+        <GridItem wide>
+          <Panel title="Body map">
+            <Text style={styles.timestamp}>Choose a region to explore readings from your latest check-in.</Text>
+            <BodyMap tiles={buildReadingTiles(latestCheckIn.readings, snapshot.comparisons)} />
           </Panel>
         </GridItem>
 

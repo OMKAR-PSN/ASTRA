@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 
 import { EmptyState } from '@/components/EmptyState';
 import { Grid, GridItem } from '@/components/Grid';
@@ -19,20 +19,21 @@ import { useSession } from '@/state/SessionProvider';
 
 export default function ReportPreviewScreen() {
   const router = useRouter();
-  const { latestCheckIn, findReportForCheckIn, confirmReport } = useSession();
+  const { reportId } = useLocalSearchParams<{ reportId?: string }>();
+  const { latestCheckIn, reports, findReportForCheckIn, confirmReport } = useSession();
   const [confirming, setConfirming] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [confirmedMessage, setConfirmedMessage] = useState(false);
 
-  const queued = latestCheckIn ? findReportForCheckIn(latestCheckIn.id) : undefined;
+  const queued = reportId ? reports.find((report) => report.id === reportId) : latestCheckIn ? findReportForCheckIn(latestCheckIn.id) : undefined;
   const snapshot = useMemo(() => {
     if (queued) return queued.snapshot;
     return latestCheckIn ? createReportSnapshot(latestCheckIn) : null;
   }, [queued, latestCheckIn]);
 
-  if (!latestCheckIn || !snapshot) {
+  if (!snapshot || (reportId && !queued)) {
     return (
-      <ScreenContainer title="Report Preview" subtitle="Review a check-in before it is queued.">
+      <ScreenContainer title="Report preview" subtitle="Review a check-in before it is queued.">
         <Panel>
           <EmptyState
             title="No check-in to report"
@@ -44,11 +45,11 @@ export default function ReportPreviewScreen() {
     );
   }
 
-  const display = deliveryStatusDisplay.queued;
+  const display = deliveryStatusDisplay[queued?.status ?? 'queued'];
 
   return (
     <ScreenContainer
-      title="Report Preview"
+      title="Report preview"
       subtitle="Review the values below. Confirming adds one report to the outbox. Nothing is sent from this screen."
     >
       <Grid>
@@ -76,7 +77,8 @@ export default function ReportPreviewScreen() {
           <Panel title="Recorded values">
             <View style={styles.tiles}>
               {buildReadingTiles(snapshot.checkIn.readings).map((tile) => (
-                <MetricTile key={tile.label} label={tile.label} value={tile.value} unit={tile.unit} />
+                <MetricTile key={tile.label} label={tile.label} value={tile.value} unit={tile.unit}
+                  sublabel={`Manual · ${formatTimestamp(snapshot.checkIn.recordedAt)}`} />
               ))}
             </View>
             <Text style={styles.listLabel}>Symptoms</Text>
@@ -107,7 +109,7 @@ export default function ReportPreviewScreen() {
                 This report is a read-only snapshot. It was created when you confirmed the check-in.
               </Text>
               <PrimaryButton
-                label={`Already queued as ${queued.id}`}
+                label={`Confirmed as ${queued.id}`}
                 disabled
                 onPress={() => undefined}
               />
@@ -126,7 +128,7 @@ export default function ReportPreviewScreen() {
                   setConfirming(true);
                   setConfirmError(null);
                   try {
-                    await confirmReport(latestCheckIn.id);
+                    await confirmReport(snapshot.checkIn.id);
                     setConfirmedMessage(true);
                   } catch {
                     setConfirmError('Could not save this report to offline storage. Please try again.');
@@ -134,7 +136,7 @@ export default function ReportPreviewScreen() {
                     setConfirming(false);
                   }
                 }}
-                accessibilityHint="Creates one queued report. It is not delivered in this prototype."
+                accessibilityHint="Creates one report in the local outbox."
               />
               {confirmedMessage ? <Text style={styles.muted}>Report saved to the offline outbox. It has not been delivered.</Text> : null}
               {confirmError ? <Text accessibilityRole="alert" style={styles.muted}>{confirmError}</Text> : null}

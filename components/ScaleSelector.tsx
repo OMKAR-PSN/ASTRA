@@ -26,7 +26,7 @@ export function ScaleSelector({ label, hint, value, error, onChange }: ScaleSele
               accessibilityLabel={`${label} ${option} of 5`}
               accessibilityState={{ selected }}
               onPress={() => onChange(selected ? null : option)}
-              style={({ pressed, hovered }) => [
+              style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
                 styles.option,
                 selected && styles.optionSelected,
                 (hovered || pressed) && !selected && styles.optionHover,

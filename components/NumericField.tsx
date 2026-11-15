@@ -21,6 +21,7 @@ export function NumericField({ label, unit, hint, value, error, onChangeText }: 
           value={value}
           onChangeText={onChangeText}
           keyboardType="decimal-pad"
+          aria-invalid={Boolean(error)}
           placeholder="Not recorded"
           placeholderTextColor={colors.slate[400]}
           style={styles.input}
@@ -28,7 +29,7 @@ export function NumericField({ label, unit, hint, value, error, onChangeText }: 
         <Text style={styles.unit}>{unit}</Text>
       </View>
       {error ? (
-        <Text style={styles.error}>{error}</Text>
+        <Text accessibilityRole="alert" style={styles.error}>{error}</Text>
       ) : (
         <Text style={styles.hint}>{hint}</Text>
       )}
@@ -54,7 +55,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.navy[900],
     borderWidth: 1,
     borderColor: colors.navy[600],
-    borderRadius: radius.md,
+    borderRadius: radius.sm,
     paddingHorizontal: spacing.xs,
   },
   inputRowError: {

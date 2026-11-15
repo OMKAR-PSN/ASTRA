@@ -11,21 +11,22 @@ type SymptomChecklistProps = {
 
 export function SymptomChecklist({ options, selected, onChange }: SymptomChecklistProps) {
   const toggle = (option: string) => {
+    if (option === 'None') { onChange([]); return; }
     onChange(selected.includes(option) ? selected.filter((item) => item !== option) : [...selected, option]);
   };
 
   return (
     <View style={styles.list} accessibilityRole="list">
-      {options.map((option) => {
-        const checked = selected.includes(option);
+      {['None', ...options.filter((option) => option !== 'None')].map((option) => {
+        const checked = option === 'None' ? selected.length === 0 : selected.includes(option);
         return (
           <Pressable
             key={option}
             accessibilityRole="checkbox"
             accessibilityLabel={option}
-            accessibilityState={{ checked }}
+            aria-checked={checked}
             onPress={() => toggle(option)}
-            style={({ pressed, hovered }) => [
+            style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
               styles.row,
               (hovered || pressed) && styles.rowHover,
             ]}

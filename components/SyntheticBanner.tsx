@@ -14,16 +14,16 @@ const styles = StyleSheet.create({
   banner: {
     alignSelf: 'flex-start',
     borderWidth: 1,
-    borderColor: colors.accent[400],
+    borderColor: colors.primary[400],
     borderRadius: radius.sm,
     paddingVertical: spacing.xs / 2,
     paddingHorizontal: spacing.xs,
   },
   label: {
     fontFamily: fonts.semibold,
-    fontSize: 12,
+    fontSize: 11,
     lineHeight: 16,
-    letterSpacing: 1,
-    color: colors.accent[400],
+    letterSpacing: 0.5,
+    color: colors.primary[400],
   },
 });

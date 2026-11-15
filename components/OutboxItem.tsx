@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { StatusPill, deliveryStatusDisplay } from '@/components/StatusPill';
@@ -12,7 +13,14 @@ type OutboxItemProps = {
 };
 
 export function OutboxItem({ report, onRetry }: OutboxItemProps) {
+  const router = useRouter();
   const display = deliveryStatusDisplay[report.status];
+  const steps = [
+    { label: 'Saved locally', complete: true, active: false },
+    { label: 'Queued', complete: true, active: report.status === 'queued' },
+    { label: report.status === 'failed' ? 'Retry required' : 'Sending', complete: report.status === 'acknowledged', active: report.status === 'sending' || report.status === 'failed' },
+    { label: 'Acknowledged', complete: report.status === 'acknowledged', active: false },
+  ];
   return (
     <View style={styles.item}>
       <View style={styles.headerRow}>
@@ -22,18 +30,28 @@ export function OutboxItem({ report, onRetry }: OutboxItemProps) {
       <Text style={styles.meta}>
         {`Check-in ${report.checkInId} · Created ${formatTimestamp(report.createdAt)}`}
       </Text>
+      <View style={styles.timeline} accessibilityLabel="Report delivery timeline">
+        {steps.map((step) => (
+          <View key={step.label} style={styles.step}>
+            <Text style={[styles.marker, step.complete && styles.complete, step.active && styles.active]}>{step.complete ? '✓' : step.active ? '●' : '○'}</Text>
+            <Text style={styles.meta}>{step.label}</Text>
+          </View>
+        ))}
+      </View>
       {report.receipt ? (
         <Text style={styles.meta}>
           {`Received ${formatTimestamp(report.receipt.receivedAt)} · Reference ${report.receipt.receiverReference}`}
         </Text>
       ) : null}
       {report.retryNote ? <Text style={styles.note}>{report.retryNote}</Text> : null}
-      {report.status === 'queued' ? (
+      <PrimaryButton label="View report snapshot" variant="secondary"
+        onPress={() => router.push({ pathname: '/report', params: { reportId: report.id } })} />
+      {report.status === 'queued' || report.status === 'failed' ? (
         <PrimaryButton
-          label="Retry delivery"
+          label={report.status === 'failed' ? 'Retry delivery' : 'Send report'}
           variant="secondary"
           onPress={() => onRetry(report.id)}
-          accessibilityHint={`Attempts to send ${report.id}. The report stays queued in this prototype.`}
+          accessibilityHint={`Attempts to send ${report.id}.`}
         />
       ) : null}
     </View>
@@ -41,6 +59,11 @@ export function OutboxItem({ report, onRetry }: OutboxItemProps) {
 }
 
 const styles = StyleSheet.create({
+  timeline: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, paddingVertical: spacing.xs, borderTopWidth: 1, borderColor: colors.navy[600] },
+  step: { flexBasis: 95, flexGrow: 1, gap: 4 },
+  marker: { color: colors.slate[400], fontSize: 20 },
+  complete: { color: colors.success[400] },
+  active: { color: colors.accent[400] },
   item: {
     gap: spacing.xs,
     padding: spacing.sm,

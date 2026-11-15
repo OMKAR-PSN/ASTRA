@@ -37,7 +37,7 @@ const textsFrom = (readings: Readings): NumericTexts => ({
 
 export default function CheckInScreen() {
   const router = useRouter();
-  const { saveCheckIn, storageDescription } = useSession();
+  const { saveCheckIn } = useSession();
 
   const [texts, setTexts] = useState<NumericTexts>(emptyTexts);
   const [scales, setScales] = useState<Pick<Readings, 'mood' | 'stress'>>({ mood: null, stress: null });
@@ -45,6 +45,7 @@ export default function CheckInScreen() {
   const [activityNote, setActivityNote] = useState('');
   const [errors, setErrors] = useState<DraftErrors>({});
   const [saved, setSaved] = useState(false);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -75,10 +76,11 @@ export default function CheckInScreen() {
     setSaving(true);
     try {
       await saveCheckIn({ readings: result.readings, symptoms, activityNote: activityNote.trim() });
+      setSavedAt(new Date().toISOString().slice(11, 16));
       setSaved(true);
     } catch {
       setSaved(false);
-      setSaveError('Could not save this check-in to offline storage. Please try again.');
+      setSaveError('Check-in could not be saved. Retry to confirm your changes.');
     } finally {
       setSaving(false);
     }
@@ -86,10 +88,11 @@ export default function CheckInScreen() {
 
   return (
     <ScreenContainer
-      title="Check-in"
-      subtitle="Enter readings from your synthetic device. Leave a field empty if it was not recorded."
+      title="Health check-in"
+      subtitle="Record manual observations for this fictional mission. Leave unmeasured fields empty."
     >
       <View style={styles.toolbar}>
+        <Text style={styles.hint}>MANUAL OBSERVATIONS · SYNTHETIC DATA</Text>
         <PrimaryButton variant="secondary" label="Load demo readings" onPress={loadDemo} />
       </View>
 
@@ -171,7 +174,7 @@ export default function CheckInScreen() {
 
         <GridItem wide>
           <Panel title="Symptoms">
-            <Text style={styles.hint}>Select any that apply. Nothing selected means none reported.</Text>
+            <Text style={styles.hint}>Select symptoms or choose None.</Text>
             <SymptomChecklist
               options={symptomOptions}
               selected={symptoms}
@@ -210,7 +213,7 @@ export default function CheckInScreen() {
       <View style={styles.footer}>
         {saved ? (
           <View style={styles.savedRow}>
-            <StatusPill label={storageDescription.includes('IndexedDB') ? 'Saved locally' : 'Session-only storage'} tone="primary" />
+            <StatusPill label={`Check-in saved locally at ${savedAt} UTC`} tone="success" />
             <PrimaryButton
               variant="secondary"
               label="View dashboard"
@@ -227,7 +230,10 @@ export default function CheckInScreen() {
 const styles = StyleSheet.create({
   toolbar: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.xs,
   },
   hint: {
     fontFamily: fonts.regular,

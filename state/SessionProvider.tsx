@@ -1,10 +1,11 @@
-import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { colors, fonts, spacing } from '@/constants/theme';
 
+import { receiverUrl, submitReport } from '@/lib/receiver';
 import { sessionRepository, storageDescription } from '@/lib/sessionRepository';
 import { initialSessionState, type SessionState } from '@/state/sessionReducer';
 import type { CheckIn, CheckInDraft, ReportRecord } from '@/types/astra';
@@ -62,16 +63,44 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setState((current) => ({ ...current, linkAvailable: available }));
   }, []);
 
-  const retryReport = useCallback((reportId: string) => {
-    setState((current) => ({
+  const sending = useRef(new Set<string>());
+  const retryReport = useCallback(async (reportId: string) => {
+    const report = state.reports.find((item) => item.id === reportId);
+    if (!report || report.status === 'acknowledged' || sending.current.has(reportId)) return;
+
+    const setReport = (updated: ReportRecord) => setState((current) => ({
       ...current,
-      reports: current.reports.map((report) => report.id === reportId && report.status === 'queued'
-        ? { ...report, retryNote: current.linkAvailable
-          ? 'Ground receiver unavailable. Report remains queued and was not delivered.'
-          : 'Communications link unavailable. Report remains queued and was not delivered.' }
-        : report),
+      reports: current.reports.map((item) => item.id === reportId ? updated : item),
     }));
-  }, []);
+    if (!state.linkAvailable || !receiverUrl) {
+      setReport({
+        ...report,
+        retryNote: state.linkAvailable ? 'Ground receiver URL is not configured.' : 'Simulated link is unavailable.',
+      });
+      return;
+    }
+
+    sending.current.add(reportId);
+    setReport({ ...report, status: 'sending', retryNote: null });
+    try {
+      let receipt;
+      try {
+        receipt = await submitReport(report);
+      } catch {
+        setReport(await sessionRepository.updateDelivery(reportId, {
+          status: 'failed', receipt: null, retryNote: 'Delivery could not be confirmed. Retry when the receiver is reachable.',
+        }));
+        return;
+      }
+      setReport(await sessionRepository.updateDelivery(reportId, {
+        status: 'acknowledged', receipt, retryNote: null,
+      }));
+    } catch {
+      setReport({ ...report, retryNote: 'Could not save the delivery result. Retry to recover the receiver receipt.' });
+    } finally {
+      sending.current.delete(reportId);
+    }
+  }, [state.linkAvailable, state.reports]);
 
   const value = useMemo<SessionContextValue>(() => ({
     ...state,

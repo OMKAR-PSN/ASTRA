@@ -26,7 +26,7 @@ export function PrimaryButton({
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
-      style={({ pressed, hovered }) => [
+      style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
         styles.base,
         isPrimary ? styles.primary : styles.secondary,
         hovered && !disabled && (isPrimary ? styles.primaryHover : styles.secondaryHover),

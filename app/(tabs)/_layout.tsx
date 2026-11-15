@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { useWindowDimensions } from 'react-native';
+import { Text, useWindowDimensions } from 'react-native';
 
 import { navItems } from '@/constants/navigation';
 import { colors, fonts, layout } from '@/constants/theme';
@@ -25,15 +25,18 @@ export default function TabLayout() {
         tabBarLabelStyle: {
           fontFamily: fonts.semibold,
           fontSize: 11,
+          marginHorizontal: 0,
         },
       }}
     >
+      <Tabs.Screen name="report" options={{ href: null }} />
       {navItems.map(({ routeName, label, Icon }) => (
         <Tabs.Screen
           key={routeName}
           name={routeName}
           options={{
             title: label,
+            tabBarLabel: ({ color }) => <Text style={{ color, fontFamily: fonts.semibold, fontSize: 11, lineHeight: 14, textAlign: 'center' }}>{label}</Text>,
             tabBarIcon: ({ color, size }) => <Icon color={color} size={size} strokeWidth={2} />,
           }}
         />

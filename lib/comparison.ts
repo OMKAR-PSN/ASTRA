@@ -26,11 +26,11 @@ export function compareToBaseline(readings: Readings, baseline: Baseline): Metri
   return comparedFields.map(({ key, label, unit, decimals }) => {
     const current = readings[key];
     const base = baseline[key];
-    if (current === null) {
+    if (current === null || !Number.isFinite(current)) {
       return { key, label, unit, decimals, current: null, baseline: base, change: null, percentChange: null };
     }
-    const change = roundTo(current - base, 2);
-    const percentChange = roundTo(((current - base) / base) * 100, 2);
+    const change = Number.isFinite(base) ? roundTo(current - base, 2) : null;
+    const percentChange = change !== null && base !== 0 ? roundTo(((current - base) / base) * 100, 2) : null;
     return { key, label, unit, decimals, current, baseline: base, change, percentChange };
   });
 }

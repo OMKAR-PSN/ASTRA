@@ -21,7 +21,7 @@ export function BodyMap({ tiles }: { tiles: Tile[] }) {
 
   return (
     <View style={styles.content}>
-      <Svg width={116} height={175} viewBox="0 0 116 175" accessible={false} style={styles.figure} testID="body-map-figure">
+      <Svg width={116} height={175} viewBox="0 0 116 175" style={styles.figure} testID="body-map-figure">
         <Path
           d="M40 52 L28 57 L16 102 L24 107 L38 79 L42 111 L38 167 L51 167 L58 123 L65 167 L78 167 L74 111 L78 79 L92 107 L100 102 L88 57 L76 52 Z"
           fill={color(2)} stroke={colors.slate[400]} strokeWidth={2}

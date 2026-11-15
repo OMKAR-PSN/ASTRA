@@ -5,7 +5,7 @@ import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 
-import { SessionProvider } from '@/state/SessionProvider';
+import { PresentationSession } from '@/state/PresentationSession';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 
 SplashScreen.preventAutoHideAsync();
@@ -30,12 +30,12 @@ export default function RootLayout() {
   }
 
   return (
-    <SessionProvider>
+    <PresentationSession>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="light" />
-    </SessionProvider>
+    </PresentationSession>
   );
 }

@@ -6,6 +6,7 @@ import { PrimaryButton } from '@/components/PrimaryButton';
 import { colors, fonts, spacing } from '@/constants/theme';
 
 import { receiverUrl, submitReport } from '@/lib/receiver';
+import type { SessionRepository } from '@/lib/sessionRepositoryContract';
 import { sessionRepository, storageDescription } from '@/lib/sessionRepository';
 import { initialSessionState, type SessionState } from '@/state/sessionReducer';
 import type { CheckIn, CheckInDraft, ReportRecord } from '@/types/astra';
@@ -23,7 +24,7 @@ type SessionContextValue = SessionState & {
 
 const SessionContext = createContext<SessionContextValue | null>(null);
 
-export function SessionProvider({ children }: { children: ReactNode }) {
+export function SessionProvider({ children, repository = sessionRepository, storageLabel = storageDescription }: { children: ReactNode; repository?: SessionRepository; storageLabel?: string }) {
   const [state, setState] = useState<SessionState>(initialSessionState);
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -34,7 +35,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     let active = true;
     setLoading(true);
     setLoadError(null);
-    sessionRepository.load().then((saved) => {
+    repository.load().then((saved) => {
       if (active) {
         setState((current) => ({ ...current, checkIns: saved.checkIns, reports: saved.reports }));
         setReady(true);
@@ -45,19 +46,19 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       if (active) setLoading(false);
     });
     return () => { active = false; };
-  }, [loadAttempt]);
+  }, [loadAttempt, repository]);
 
   const saveCheckIn = useCallback(async (draft: CheckInDraft) => {
-    const checkIn = await sessionRepository.saveCheckIn(draft, new Date().toISOString());
+    const checkIn = await repository.saveCheckIn(draft, new Date().toISOString());
     setState((current) => ({ ...current, checkIns: [...current.checkIns, checkIn] }));
-  }, []);
+  }, [repository]);
 
   const confirmReport = useCallback(async (checkInId: string) => {
-    const report = await sessionRepository.confirmReport(checkInId, new Date().toISOString());
+    const report = await repository.confirmReport(checkInId, new Date().toISOString());
     setState((current) => current.reports.some((item) => item.id === report.id)
       ? current
       : { ...current, reports: [...current.reports, report] });
-  }, []);
+  }, [repository]);
 
   const setLinkAvailable = useCallback((available: boolean) => {
     setState((current) => ({ ...current, linkAvailable: available }));
@@ -87,12 +88,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       try {
         receipt = await submitReport(report);
       } catch {
-        setReport(await sessionRepository.updateDelivery(reportId, {
+        setReport(await repository.updateDelivery(reportId, {
           status: 'failed', receipt: null, retryNote: 'Delivery could not be confirmed. Retry when the receiver is reachable.',
         }));
         return;
       }
-      setReport(await sessionRepository.updateDelivery(reportId, {
+      setReport(await repository.updateDelivery(reportId, {
         status: 'acknowledged', receipt, retryNote: null,
       }));
     } catch {
@@ -100,19 +101,19 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     } finally {
       sending.current.delete(reportId);
     }
-  }, [state.linkAvailable, state.reports]);
+  }, [state.linkAvailable, state.reports, repository]);
 
   const value = useMemo<SessionContextValue>(() => ({
     ...state,
     ready,
-    storageDescription,
+    storageDescription: storageLabel,
     latestCheckIn: state.checkIns.at(-1) ?? null,
     findReportForCheckIn: (checkInId) => state.reports.find((report) => report.checkInId === checkInId),
     saveCheckIn,
     confirmReport,
     setLinkAvailable,
     retryReport,
-  }), [state, ready, saveCheckIn, confirmReport, setLinkAvailable, retryReport]);
+  }), [state, ready, saveCheckIn, confirmReport, setLinkAvailable, retryReport, storageLabel]);
 
   if (!ready) {
     return createElement(

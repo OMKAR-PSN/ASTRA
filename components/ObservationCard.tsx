@@ -3,43 +3,92 @@ import type { LucideIcon } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Surface } from '@/components/Surface';
-import { colors, fonts } from '@/constants/theme';
+import { StatusPill } from '@/components/StatusPill';
+import { colors, fonts, type as typography } from '@/constants/theme';
 import { formatTimestamp } from '@/lib/format';
 import type { ReadingStatus } from '@/lib/readingTiles';
 
-type Props = { label: string; value: string; unit?: string; baseline?: string; status: ReadingStatus; measuredAt?: string; Icon: LucideIcon };
-const labels = { baseline: 'Near demo baseline', difference: 'Differs from demo baseline', recorded: 'Self-reported', missing: 'Missing reading' };
+type Props = {
+  label: string;
+  value: string;
+  unit?: string;
+  baseline?: string;
+  delta?: string;
+  deltaTone?: 'neutral' | 'success' | 'accent';
+  context?: string;
+  status: ReadingStatus;
+  measuredAt?: string;
+  Icon: LucideIcon;
+};
 
-export function ObservationCard({ label, value, unit, baseline, status, measuredAt, Icon }: Props) {
+const statusDisplay: Record<ReadingStatus, { label: string; tone: 'primary' | 'accent' | 'success' | 'neutral' }> = {
+  baseline: { label: 'Within baseline', tone: 'success' },
+  difference: { label: 'Review · Demo rule', tone: 'accent' },
+  recorded: { label: 'Recorded', tone: 'primary' },
+  missing: { label: 'Not recorded', tone: 'neutral' },
+};
+
+export function ObservationCard({ label, value, unit, baseline, delta, deltaTone = 'neutral', context, status, measuredAt, Icon }: Props) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 60000);
     return () => clearInterval(timer);
   }, []);
   const stale = measuredAt && now - Date.parse(measuredAt) > 86400000;
+  const compactValue = status === 'missing' || value.length > 7;
+  const display = statusDisplay[status];
+  const deltaColor = deltaTone === 'success' ? colors.success[400] : deltaTone === 'accent' ? colors.accent[400] : colors.slate[300];
+
   return (
-    <Surface style={styles.card}>
-      <View style={styles.top}><Text style={styles.label}>{label}</Text><Icon size={20} color={colors.primary[400]} /></View>
-      <View style={styles.reading}><Text style={[styles.value, (status === 'missing' || value.length > 7) && styles.smallValue]}>{value}</Text>{unit && status !== 'missing' ? <Text style={styles.unit}>{unit}</Text> : null}</View>
-      <Text style={styles.meta}>{measuredAt ? formatTimestamp(measuredAt) : 'Awaiting first observation'}</Text>
-      <View style={styles.footer}>
-        <Text style={[styles.status, status === 'difference' && { color: colors.accent[400] }]}>{labels[status]}</Text>
-        <Text style={styles.meta}>{baseline ? `Synthetic baseline · ${baseline}` : 'Manual entry · Synthetic demo'}</Text>
-        {stale ? <Text style={styles.warning}>Older than 24 h · Demo freshness rule</Text> : null}
+    <Surface tone="panel" style={styles.card}>
+      <View style={styles.headerRow}>
+        <View style={styles.titleBlock}>
+          <View style={styles.labelRow}>
+            <Icon size={14} color={colors.primary[400]} strokeWidth={2} />
+            <Text style={styles.label}>{label}</Text>
+          </View>
+          <Text style={styles.timestamp} numberOfLines={1}>{measuredAt ? `Logged · ${formatTimestamp(measuredAt)}` : 'Awaiting first observation'}</Text>
+        </View>
+        <StatusPill label={display.label} tone={display.tone} />
       </View>
+
+      <View style={styles.readingRow}>
+        <Text style={[styles.value, compactValue && styles.compactValue]}>{value}</Text>
+        {unit && status !== 'missing' ? <Text style={styles.unit}>{unit}</Text> : null}
+        {delta ? <Text style={[styles.delta, { color: deltaColor }]} numberOfLines={1}>{delta}</Text> : null}
+      </View>
+
+      <View style={styles.footer}>
+        <Text style={styles.footerText} numberOfLines={1}>{context ?? 'Manual entry · Synthetic demo'}</Text>
+        <Text style={styles.footerStrong} numberOfLines={1}>{baseline ? `Baseline ${baseline}` : 'Self-reported 1–5 scale'}</Text>
+      </View>
+      {stale ? <Text style={styles.warning}>Older than 24 h · Demo freshness rule</Text> : null}
     </Surface>
   );
 }
+
 const styles = StyleSheet.create({
-  card: { flex: 1, gap: 10, padding: 16 },
-  top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  label: { fontFamily: fonts.semibold, fontSize: 12, lineHeight: 18, color: colors.slate[300], textTransform: 'uppercase', flex: 1, letterSpacing: 0.4 },
-  reading: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', gap: 6 },
-  value: { fontFamily: fonts.mono, fontSize: 30, lineHeight: 40, color: colors.offWhite, fontVariant: ['tabular-nums'] },
-  smallValue: { fontSize: 22, lineHeight: 32 },
-  unit: { fontFamily: fonts.mono, fontSize: 12, color: colors.slate[300] },
-  meta: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 18, color: colors.slate[300] },
-  footer: { marginTop: 'auto', borderTopWidth: 1, borderColor: colors.navy[600], paddingTop: 10, gap: 4 },
-  status: { fontFamily: fonts.semibold, fontSize: 12, lineHeight: 18, color: colors.secondary[400] },
-  warning: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 18, color: colors.accent[400] },
+  card: { flex: 1, gap: 12, minHeight: 184, justifyContent: 'space-between' },
+  headerRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 },
+  titleBlock: { gap: 3, flexShrink: 1, minWidth: 0 },
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  label: { ...typography.label, color: colors.slate[200], flexShrink: 1 },
+  timestamp: { ...typography.meta, color: colors.slate[500] },
+  readingRow: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', gap: 7 },
+  value: { ...typography.numeral, color: colors.offWhite },
+  compactValue: { ...typography.numeralSmall, color: colors.offWhite },
+  unit: { fontFamily: fonts.mono, fontSize: 11, lineHeight: 16, color: colors.slate[500], letterSpacing: 0.4, textTransform: 'uppercase' },
+  delta: { marginLeft: 'auto', fontFamily: fonts.mono, fontSize: 10, lineHeight: 15 },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.navy[600],
+    paddingTop: 10,
+  },
+  footerText: { ...typography.monoSmall, color: colors.slate[400], flexShrink: 1 },
+  footerStrong: { ...typography.monoSmall, color: colors.slate[300] },
+  warning: { ...typography.meta, color: colors.accent[400] },
 });

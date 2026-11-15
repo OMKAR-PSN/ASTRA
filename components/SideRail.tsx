@@ -1,3 +1,5 @@
+import { Activity, Database } from 'lucide-react-native';
+import { useSession } from '@/state/SessionProvider';
 import { usePathname, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -6,12 +8,13 @@ import { crewProfile } from '@/fixtures/crew';
 import { navItems } from '@/constants/navigation';
 
 export function SideRail() {
+  const { checkIns, reports } = useSession();
   const pathname = usePathname();
   const router = useRouter();
 
   return (
     <View style={styles.rail}>
-      <View><Text style={styles.brand}>ASTRA CARE</Text><Text style={styles.caption}>CREW MEDICAL OPERATIONS</Text></View>
+      <View style={styles.brandRow}><Activity size={28} color={colors.primary[400]} /><View><Text style={styles.brand}>ASTRA CARE</Text><Text style={styles.caption}>CREW OPERATIONS</Text></View></View>
       <View style={styles.list}>
         {navItems.map(({ href, desktopLabel, Icon }) => {
           const active = pathname === href || (href === '/delivery' && pathname === '/report');
@@ -27,18 +30,20 @@ export function SideRail() {
                 (hovered || pressed) && !active && styles.itemHover,
               ]}
             >
-              <Icon size={20} color={active ? colors.primary[400] : colors.slate[300]} strokeWidth={2} />
+              <Icon size={20} color={active ? colors.primary.ink : colors.slate[300]} strokeWidth={2} />
               <Text style={[styles.itemLabel, active && styles.itemLabelActive]}>{desktopLabel}</Text>
             </Pressable>
           );
         })}
       </View>
-      <View style={styles.footer}><Text style={styles.caption}>{crewProfile.missionName}</Text><Text style={styles.caption}>Fictional crew · Synthetic demo</Text></View>
+      <View style={styles.footer}><View style={styles.storage}><Database size={18} color={colors.primary[400]} /><Text style={styles.caption}>LOCAL RECORDS</Text><Text style={styles.caption}>{checkIns.length} check-ins · {reports.length} reports</Text></View><Text style={styles.caption}>{crewProfile.missionName}</Text><Text style={styles.caption}>Fictional crew · Synthetic demo</Text></View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  brandRow: { flexDirection: 'row', gap: 4, alignItems: 'center' },
+  storage: { padding: 12, gap: 8, backgroundColor: colors.navy[800], borderRadius: 12, borderWidth: 1, borderColor: colors.navy[600] },
   caption: { fontFamily: fonts.regular, color: colors.slate[300], fontSize: 12, lineHeight: 19, paddingHorizontal: 8 },
   footer: { marginTop: 'auto', paddingVertical: 24, gap: 8 },
   rail: {
@@ -47,7 +52,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     borderRightWidth: 1,
     borderRightColor: colors.navy[600],
-    backgroundColor: '#0B1928',
+    backgroundColor: '#0D1828',
     gap: spacing.md,
   },
   brand: {
@@ -72,7 +77,7 @@ const styles = StyleSheet.create({
     borderLeftColor: 'transparent',
   },
   itemActive: {
-    backgroundColor: colors.navy[700],
+    backgroundColor: colors.primary[400],
     borderLeftColor: colors.primary[400],
   },
   itemHover: {
@@ -86,6 +91,6 @@ const styles = StyleSheet.create({
   },
   itemLabelActive: {
     fontFamily: fonts.semibold,
-    color: colors.offWhite,
+    color: colors.primary.ink,
   },
 });

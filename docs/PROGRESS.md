@@ -93,3 +93,7 @@ Crew web and mobile: record observations, review history/explanations, confirm r
 - Persistence/delivery: state/SessionProvider.tsx, lib/sessionRepository.web.ts, lib/sessionRepository.native.ts, lib/sessionRepositoryContract.ts, lib/receiver.ts, lib/reportProtocol.ts, ground-receiver/.
 - Supporting logic/build: lib/format.ts, lib/comparison.ts, lib/readingTiles.ts, lib/checkInStreak.ts, scripts/build-web-cache.mjs, package.json, app.json.
 - Documentation: README.md, docs/decisions.md, docs/UI_UX_AUDIT.md and this progress report.
+
+## Stitch design integration
+
+Milestone 1 is implemented on feat/stitch-ui-redesign: shared tokens/surfaces/navigation/header and Mission Overview. See STITCH_INTEGRATION.md for the inspected export, preserved contracts, validation and remaining differences. The other screen-specific Stitch layouts are intentionally deferred.

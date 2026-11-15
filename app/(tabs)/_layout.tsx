@@ -13,10 +13,11 @@ export default function TabLayout() {
       tabBar={isDesktop ? () => null : undefined}
       screenOptions={{
         headerShown: false,
+        tabBarActiveBackgroundColor: 'rgba(80, 222, 216, 0.08)',
         tabBarActiveTintColor: colors.primary[400],
         tabBarInactiveTintColor: colors.slate[300],
         tabBarStyle: {
-          backgroundColor: colors.navy[950],
+          backgroundColor: '#0D1828',
           borderTopColor: colors.navy[600],
           minHeight: 68,
           paddingTop: 7,

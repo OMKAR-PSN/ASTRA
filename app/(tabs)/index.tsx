@@ -1,22 +1,21 @@
 import { useMemo } from 'react';
 import { useRouter } from 'expo-router';
-import { ChevronRight, ClipboardList, Users } from 'lucide-react-native';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Activity, ArrowUpRight, ClipboardList, Database, HeartPulse, Moon, Orbit, Radio, ShieldCheck, Smile, Thermometer, Zap } from 'lucide-react-native';
+import { Linking, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
-import { MetricTile } from '@/components/MetricTile';
+import { ObservationCard } from '@/components/ObservationCard';
+import { Surface } from '@/components/Surface';
 import { TrendBars } from '@/components/TrendBars';
 import { ComparisonTable } from '@/components/ComparisonTable';
-import { buildReadingTiles } from '@/lib/readingTiles';
 import { EmptyState } from '@/components/EmptyState';
-import { Grid, GridItem } from '@/components/Grid';
-import { Panel } from '@/components/Panel';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { ScreenContainer } from '@/components/ScreenContainer';
-import { LinkIndicator, StatusPill } from '@/components/StatusPill';
-import { colors, fonts, spacing } from '@/constants/theme';
+import { StatusPill } from '@/components/StatusPill';
+import { colors, fonts, layout, stitch } from '@/constants/theme';
 import { crewProfile, syntheticBaseline } from '@/fixtures/crew';
+import { buildReadingTiles, type ReadingStatus } from '@/lib/readingTiles';
 import { checkInStreak } from '@/lib/checkInStreak';
-import { formatReadingValue, formatTimestamp } from '@/lib/format';
+import { formatTimestamp } from '@/lib/format';
 import { createReportSnapshot } from '@/lib/snapshot';
 import { useSession } from '@/state/SessionProvider';
 
@@ -24,174 +23,124 @@ const PLANNED_DEMO_MISSION_DAYS = 240;
 
 export default function MissionHomeScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const desktop = width >= layout.desktopBreakpoint;
   const { latestCheckIn, checkIns, reports, linkAvailable } = useSession();
   const streak = checkInStreak(checkIns);
   const pendingCount = reports.filter((report) => report.status !== 'acknowledged').length;
+  const acknowledgedCount = reports.filter((report) => report.status === 'acknowledged').length;
   const assessment = useMemo(() => latestCheckIn ? createReportSnapshot(latestCheckIn) : null, [latestCheckIn]);
+  const tiles = latestCheckIn && assessment ? buildReadingTiles(latestCheckIn.readings, assessment.comparisons) : [];
+  const review = tiles.some((tile) => tile.status === 'difference');
+  const compared = assessment?.comparisons.some((item) => item.percentChange !== null);
+  const progress = crewProfile.missionDay / PLANNED_DEMO_MISSION_DAYS * 100;
+  const metric = (index: number) => tiles[index] ?? { value: 'Not recorded', unit: '', status: 'missing' as ReadingStatus };
+  const systolic = metric(1);
+  const diastolic = metric(2);
+  const bpMissing = systolic.status === 'missing' && diastolic.status === 'missing';
+  const bpStatus: ReadingStatus = bpMissing ? 'missing' : [systolic, diastolic].some((item) => item.status === 'difference') ? 'difference' : [systolic, diastolic].some((item) => item.status === 'missing') ? 'recorded' : 'baseline';
+  const observations = [
+    { ...metric(0), label: 'Heart rate', baseline: `${syntheticBaseline.heartRateBpm} bpm`, Icon: HeartPulse },
+    { label: 'Blood pressure', value: bpMissing ? 'Not recorded' : `${systolic.status === 'missing' ? '—' : systolic.value} / ${diastolic.status === 'missing' ? '—' : diastolic.value}`, unit: 'mmHg', status: bpStatus, baseline: `${syntheticBaseline.systolicMmHg}/${syntheticBaseline.diastolicMmHg} mmHg`, Icon: Activity },
+    { ...metric(3), label: 'Body temperature', baseline: `${syntheticBaseline.temperatureC} °C`, Icon: Thermometer },
+    { ...metric(4), label: 'Sleep duration', baseline: `${syntheticBaseline.sleepHours} h`, Icon: Moon },
+    { ...metric(5), label: 'Mood', Icon: Smile },
+    { ...metric(6), label: 'Stress', Icon: Zap },
+  ];
 
   return (
-    <ScreenContainer
-      title="Mission overview"
-      subtitle={`${crewProfile.missionName} · Mission day ${crewProfile.missionDay} · Crew health monitoring`}
-    >
-      <Grid>
-        <GridItem>
-          <Panel title="Crew status">
-            <View style={styles.crewHeader}>
-              <View style={styles.crewIcon}><Users size={21} color={colors.primary[400]} /></View>
-              <View style={styles.block}>
-                <Text style={styles.name}>{crewProfile.name}</Text>
-                <Text style={styles.muted}>{crewProfile.role}</Text>
-              </View>
-            </View>
-            <Text style={styles.muted}>{`Mission progress · Day ${crewProfile.missionDay} of ${PLANNED_DEMO_MISSION_DAYS}`}</Text>
-            <View
-              style={styles.progressTrack}
-              accessibilityRole="progressbar"
-              accessibilityLabel="Simulated mission progress"
-              accessibilityValue={{ min: 0, max: PLANNED_DEMO_MISSION_DAYS, now: crewProfile.missionDay }}
-            >
-              <View style={[styles.progressFill, { width: `${crewProfile.missionDay / PLANNED_DEMO_MISSION_DAYS * 100}%` }]} />
-            </View>
-            <LinkIndicator available={linkAvailable} />
-            <Text style={styles.muted}>{streak > 0 ? `Check-in streak · ${streak} ${streak === 1 ? 'day' : 'days'} (UTC)` : 'Save a check-in to start a streak.'}</Text>
-          </Panel>
-        </GridItem>
-        <GridItem>
-          <Panel title="Latest check-in">
-            {latestCheckIn ? (
-              <View style={styles.block}>
-                <Text style={styles.muted}>{`Recorded ${formatTimestamp(latestCheckIn.recordedAt)} · ${latestCheckIn.id}`}</Text>
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryValue}>{`Mood ${latestCheckIn.readings.mood ?? 'not recorded'} / 5`}</Text>
-                  <Text style={styles.summaryValue}>{`Stress ${latestCheckIn.readings.stress ?? 'not recorded'} / 5`}</Text>
-                  <Text style={styles.summaryValue}>{`Temperature ${formatReadingValue(latestCheckIn.readings.temperatureC, '°C', 1)}`}</Text>
-                </View>
-                <StatusPill label="Saved locally" tone="primary" />
-              </View>
-            ) : <EmptyState title="No check-in saved yet" body="Save a check-in to see current readings and assessment." />}
-            <PrimaryButton label="Start check-in" onPress={() => router.navigate('/check-in')} />
-          </Panel>
-        </GridItem>
+    <ScreenContainer title="Mission overview" subtitle={`Welcome aboard, ${crewProfile.name.split(' ')[0]}. Your crew health observation log.`}>
+      <View style={styles.actionRow}>
+        <Text style={styles.eyebrow}>CREW HEALTH / SYNTHETIC MISSION</Text>
+        <View style={!desktop && { width: '100%' }}><PrimaryButton label="Start check-in" onPress={() => router.navigate('/check-in')} /></View>
+      </View>
 
-        {latestCheckIn && assessment ? (
-          <GridItem wide>
-            <Panel title="Latest health observations">
-              <Text style={styles.muted}>{formatTimestamp(latestCheckIn.recordedAt)} · Manual entry · Synthetic demo</Text>
-              <View style={styles.summaryRow}>
-                {buildReadingTiles(latestCheckIn.readings, assessment.comparisons).map((tile) => (
-                  <MetricTile key={tile.label} {...tile} measuredAt={latestCheckIn.recordedAt} />
-                ))}
-              </View>
-            </Panel>
-          </GridItem>
-        ) : null}
-        {latestCheckIn ? (
-          <GridItem>
-            <Panel title="Historical heart rate">
-              <TrendBars title="Heart rate" unit="bpm" decimals={0} baseline={syntheticBaseline.heartRateBpm} checkIns={checkIns} read={(item) => item.readings.heartRateBpm} />
-            </Panel>
-          </GridItem>
-        ) : null}
-        {assessment ? (
-          <GridItem>
-            <Panel title="Synthetic baseline comparison">
-              <ComparisonTable comparisons={assessment.comparisons} />
-            </Panel>
-          </GridItem>
-        ) : null}
+      <Surface variant="glass" style={[styles.mission, desktop && styles.missionDesktop]}>
+        <View style={[styles.transit, desktop && styles.flex]}>
+          <View style={styles.row}><Orbit size={20} color={colors.primary[400]} /><Text style={styles.eyebrow}>MISSION PROGRESS</Text><Text style={styles.percent}>{progress.toFixed(1)}%</Text></View>
+          <Text style={styles.sectionTitle}>{crewProfile.missionName}</Text>
+          <View style={styles.trackLabels}><Text style={styles.meta}>Day 1</Text><Text style={styles.cyan}>FD {crewProfile.missionDay}</Text><Text style={styles.meta}>Day {PLANNED_DEMO_MISSION_DAYS}</Text></View>
+          <View style={styles.progressTrack} accessibilityRole="progressbar" accessibilityLabel="Simulated mission progress" accessibilityValue={{ min: 0, max: PLANNED_DEMO_MISSION_DAYS, now: crewProfile.missionDay }}>
+            <View style={[styles.progressFill, { width: `${progress}%` }]} />
+          </View>
+          <Text style={styles.meta}>{`Mission progress · Day ${crewProfile.missionDay} of ${PLANNED_DEMO_MISSION_DAYS}`}</Text>
+        </View>
+        {desktop ? <View style={styles.missionStats}>
+          <View style={styles.inset}><Text style={styles.eyebrow}>CREW MEMBER</Text><Text style={styles.statValue}>{crewProfile.name}</Text>{desktop ? <Text style={styles.meta}>{crewProfile.role}</Text> : null}<Text style={styles.meta}>Fictional crew</Text></View>
+          <View style={styles.inset}><Text style={styles.eyebrow}>CHECK-IN ROUTINE</Text><Text style={styles.statValue}>{streak} {streak === 1 ? 'day' : 'days'}</Text><Text style={styles.meta}>Consecutive UTC days</Text><Text style={styles.cyan}>{checkIns.length} saved {checkIns.length === 1 ? 'check-in' : 'check-ins'}</Text></View>
+        </View> : <View style={styles.mobileCrew}><Text style={styles.cyan}>{crewProfile.name} · Fictional crew</Text><Text style={styles.meta}>{streak} {streak === 1 ? 'day' : 'days'} in your UTC streak · {checkIns.length} saved check-ins</Text></View>}
+      </Surface>
 
-        <GridItem>
-          <Panel title="Assessment summary">
-            <Text style={styles.assessmentText}>{assessment?.explanation.possibleInterpretation ?? 'Save a check-in to see its comparison with the synthetic baseline.'}</Text>
-            <Pressable accessibilityRole="link" onPress={() => router.navigate('/assessment')} style={styles.link}>
-              <Text style={styles.linkText}>Open assessment</Text><ChevronRight size={18} color={colors.primary[400]} />
-            </Pressable>
-          </Panel>
-        </GridItem>
-        <GridItem>
-          <Panel title="Queued reports">
-            <View style={styles.summaryHeading}><ClipboardList size={18} color={colors.primary[400]} /><Text style={styles.count}>{pendingCount}</Text></View>
-            <Text style={styles.muted}>{pendingCount === 1 ? 'report awaiting delivery' : 'reports awaiting delivery'}</Text>
-            <Pressable accessibilityRole="link" onPress={() => router.navigate('/delivery')} style={styles.link}>
-              <Text style={styles.linkText}>Open delivery</Text><ChevronRight size={18} color={colors.primary[400]} />
-            </Pressable>
-          </Panel>
-        </GridItem>
-        <GridItem wide>
-          <Panel title="Spaceflight hazards">
-            <Text style={styles.muted}>NASA&apos;s Human Research Program studies space radiation, isolation and confinement, distance from Earth, gravity fields, and hostile or closed environments.</Text>
-            <Text style={styles.muted}>ASTRA CARE demonstrates one challenge of distance from Earth: keeping records accessible while communications are unavailable.</Text>
-            <Pressable accessibilityRole="link" onPress={() => void Linking.openURL('https://www.nasa.gov/hrp/risks/')} style={styles.link}>
-              <Text style={styles.linkText}>Explore NASA&apos;s spaceflight hazards</Text>
-              <ChevronRight size={18} color={colors.primary[400]} />
-            </Pressable>
-          </Panel>
-        </GridItem>
-      </Grid>
+      <View style={styles.sectionHeader}><View style={styles.row}><Activity size={22} color={colors.primary[400]} /><Text accessibilityRole="header" style={styles.sectionTitle}>Latest health observations</Text></View><Text style={styles.meta}>Manual entries · Synthetic data</Text></View>
+      {!latestCheckIn ? <Surface><EmptyState title="No check-in saved yet" body="Start a check-in to record observations. No measurements or historical events have been prefilled." /></Surface> : null}
+      <View style={styles.observationGrid}>
+        {observations.map((item) => <View key={item.label} style={[styles.observation, desktop && styles.observationDesktop]}><ObservationCard {...item} measuredAt={latestCheckIn?.recordedAt} /></View>)}
+      </View>
+
+      <View style={[styles.analysis, desktop && styles.analysisDesktop]}>
+        <Surface style={styles.chart}>
+          <View style={styles.sectionHeader}><Text accessibilityRole="header" style={styles.sectionTitle}>Health trend trajectory</Text><Pressable accessibilityRole="link" onPress={() => router.navigate('/dashboard')} style={styles.link}><Text style={styles.cyan}>View trends</Text><ArrowUpRight size={16} color={colors.primary[400]} /></Pressable></View>
+          <Text style={styles.meta}>Recorded observations against your synthetic baseline. No live sensor feed.</Text>
+          <TrendBars title="Heart rate" unit="bpm" decimals={0} baseline={syntheticBaseline.heartRateBpm} checkIns={checkIns} read={(item) => item.readings.heartRateBpm} />
+          {assessment ? <ComparisonTable comparisons={assessment.comparisons} /> : null}
+        </Surface>
+        <View style={styles.sideStack}>
+          <Surface>
+            <View style={styles.row}><ShieldCheck size={20} color={colors.secondary[400]} /><Text style={styles.eyebrow}>ASSESSMENT SUMMARY</Text></View>
+            <StatusPill label={!compared ? 'Insufficient data' : review ? 'Review suggested · Demo rule' : 'Within demo comparison range'} tone={review ? 'accent' : 'neutral'} />
+            <Text style={styles.body}>{assessment?.explanation.possibleInterpretation ?? 'Save a check-in to see its comparison with the synthetic baseline.'}</Text>
+            <View style={styles.notice}><Text style={styles.meta}>Educational synthetic demonstration. Does not diagnose medical conditions or prescribe interventions.</Text></View>
+            <PrimaryButton label="Open assessment" variant="secondary" onPress={() => router.navigate('/assessment')} />
+          </Surface>
+          <Surface>
+            <View style={styles.row}><Database size={20} color={colors.secondary[400]} /><Text style={styles.sectionTitle}>Local data & handoff</Text></View>
+            <Text style={styles.meta}>{latestCheckIn ? `Latest check-in · ${formatTimestamp(latestCheckIn.recordedAt)}` : 'No check-in recorded'}</Text>
+            <View style={styles.detailRow}><Text style={styles.meta}>Awaiting delivery</Text><Text style={styles.cyan}>{pendingCount} reports</Text></View>
+            <View style={styles.detailRow}><Text style={styles.meta}>Receiver acknowledged</Text><Text style={styles.cyan}>{acknowledgedCount} reports</Text></View>
+            <View style={styles.row}><Radio size={16} color={colors.accent[400]} /><Text style={styles.meta}>Simulated link · {linkAvailable ? 'Available' : 'Unavailable'}</Text></View>
+            <PrimaryButton label="Open delivery" variant="secondary" onPress={() => router.navigate('/delivery')} />
+          </Surface>
+        </View>
+      </View>
+      <Surface style={styles.hazards}>
+        <View style={styles.row}><ClipboardList size={20} color={colors.secondary[400]} /><Text style={styles.sectionTitle}>Spaceflight hazards</Text></View>
+        <Text style={styles.meta}>NASA&apos;s Human Research Program studies space radiation, isolation and confinement, distance from Earth, gravity fields, and hostile or closed environments. This prototype explores keeping records accessible during communication outages.</Text>
+        <Pressable accessibilityRole="link" onPress={() => void Linking.openURL('https://www.nasa.gov/hrp/risks/')} style={styles.link}><Text style={styles.cyan}>Explore NASA&apos;s spaceflight hazards</Text><ArrowUpRight size={16} color={colors.primary[400]} /></Pressable>
+      </Surface>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
+  actionRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 4 },
+  eyebrow: { fontFamily: fonts.semibold, fontSize: 11, lineHeight: 17, letterSpacing: 0.7, color: colors.slate[300], flexShrink: 1 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  mission: { gap: 20 },
+  missionDesktop: { flexDirection: 'row', alignItems: 'center' },
+  flex: { flex: 1 },
+  mobileCrew: { gap: 4 },
+  transit: { gap: 12, minWidth: 0 },
+  percent: { marginLeft: 'auto', fontFamily: fonts.mono, color: colors.primary[400], fontSize: 14 },
+  trackLabels: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
   progressTrack: { height: 6, borderRadius: 3, overflow: 'hidden', backgroundColor: colors.navy[600] },
   progressFill: { height: '100%', backgroundColor: colors.primary[400] },
-  crewHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  crewIcon: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.navy[700] },
-  summaryCard: { minHeight: 140, padding: spacing.sm, borderRadius: 12, borderWidth: 1, borderColor: colors.navy[600], backgroundColor: colors.navy[800], justifyContent: 'space-between', gap: spacing.xs },
-  summaryHeading: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs / 2 },
-  cardLabel: { fontFamily: fonts.semibold, fontSize: 11, lineHeight: 16, letterSpacing: 0.8, color: colors.slate[300] },
-  assessmentText: { fontFamily: fonts.regular, fontSize: 15, lineHeight: 23, color: colors.offWhite },
-  block: {
-    gap: spacing.xs / 2,
-  },
-  name: {
-    fontFamily: fonts.bold,
-    fontSize: 20,
-    lineHeight: 26,
-    color: colors.offWhite,
-  },
-  muted: {
-    fontFamily: fonts.regular,
-    fontSize: 14,
-    lineHeight: 21,
-    color: colors.slate[300],
-  },
-  count: {
-    fontFamily: fonts.bold,
-    fontSize: 30,
-    lineHeight: 38,
-    color: colors.offWhite,
-    fontVariant: ['tabular-nums'],
-  },
-  link: {
-    minHeight: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs / 2,
-    alignSelf: 'flex-start',
-    paddingHorizontal: spacing.xs,
-    borderRadius: 8,
-  },
-  linkActive: {
-    backgroundColor: colors.navy[700],
-  },
-  linkText: {
-    fontFamily: fonts.semibold,
-    fontSize: 16,
-    lineHeight: 24,
-    color: colors.primary[400],
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  summaryValue: {
-    fontFamily: fonts.semibold,
-    fontSize: 18,
-    lineHeight: 24,
-    color: colors.offWhite,
-    fontVariant: ['tabular-nums'],
-  },
+  missionStats: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, flex: 1, minWidth: 0 },
+  inset: { flex: 1, minWidth: 130, backgroundColor: colors.navy[900], padding: 16, borderRadius: 12, borderWidth: 1, borderColor: stitch.glassBorder, gap: 6 },
+  statValue: { fontFamily: fonts.semibold, fontSize: 19, lineHeight: 26, color: colors.offWhite },
+  sectionHeader: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 8 },
+  sectionTitle: { fontFamily: fonts.semibold, fontSize: 18, lineHeight: 26, color: colors.offWhite, flexShrink: 1 },
+  meta: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 19, color: colors.slate[300] },
+  cyan: { fontFamily: fonts.semibold, fontSize: 12, lineHeight: 19, color: colors.primary[400] },
+  observationGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  observation: { flexBasis: '46%', flexGrow: 1, minWidth: 0 },
+  observationDesktop: { flexBasis: '30%' },
+  analysis: { gap: 20, marginTop: 8 },
+  analysisDesktop: { flexDirection: 'row', alignItems: 'flex-start' },
+  chart: { flex: 1.8, minWidth: 0 },
+  sideStack: { flex: 1, minWidth: 0, gap: 20 },
+  body: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 23, color: colors.slate[300] },
+  notice: { padding: 12, backgroundColor: colors.navy[900], borderRadius: 8 },
+  detailRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 8, paddingVertical: 8, borderBottomWidth: 1, borderColor: colors.navy[600] },
+  link: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
+  hazards: { marginTop: 4 },
 });

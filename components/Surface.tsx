@@ -39,12 +39,12 @@ export function Surface({ variant = 'solid', tone = 'default', padded = true, st
   const glass = variant === 'glass';
   const webGlassStyle = glass && webBlur ? {
     backgroundColor: stitch.glass,
-    backdropFilter: 'blur(20px) saturate(145%)',
+    backdropFilter: 'blur(26px) saturate(150%)',
     boxShadow: `${stitch.shadow}, inset 0 1px 0 ${stitch.highlight}`,
   } as ViewStyle : undefined;
-  const opaqueGlassStyle = glass && !webBlur && Platform.OS === 'web' ? { backgroundColor: colors.navy[800] } : undefined;
-  const androidGlassStyle = glass && Platform.OS === 'android' ? { backgroundColor: 'rgba(13, 34, 46, 0.94)' } : undefined;
-  const iosGlassStyle = glass && nativeBlur ? { backgroundColor: 'rgba(13, 34, 46, 0.42)' } : undefined;
+  const opaqueGlassStyle = glass && !webBlur && Platform.OS === 'web' ? { backgroundColor: colors.navy[850] } : undefined;
+  const androidGlassStyle = glass && Platform.OS === 'android' ? { backgroundColor: 'rgba(5, 18, 31, 0.96)' } : undefined;
+  const iosGlassStyle = glass && nativeBlur ? { backgroundColor: 'rgba(6, 20, 33, 0.38)' } : undefined;
 
   return <View {...props} style={[
     styles.surface,
@@ -57,17 +57,17 @@ export function Surface({ variant = 'solid', tone = 'default', padded = true, st
     iosGlassStyle,
     style,
   ]}>
-    {glass && nativeBlur ? <BlurView pointerEvents="none" tint="dark" intensity={38} style={StyleSheet.absoluteFill} /> : null}
+    {glass && nativeBlur ? <BlurView pointerEvents="none" tint="dark" intensity={46} style={StyleSheet.absoluteFill} /> : null}
     {glass ? <LinearGradient
       pointerEvents="none"
-      colors={['rgba(141, 187, 255, 0.10)', 'rgba(80, 222, 216, 0.035)', 'rgba(13, 34, 46, 0)']}
-      locations={[0, 0.46, 0.78]}
+      colors={['rgba(255, 255, 255, 0.09)', 'rgba(121, 180, 255, 0.035)', 'rgba(4, 16, 28, 0)']}
+      locations={[0, 0.42, 0.82]}
       start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
+      end={{ x: 0.85, y: 1 }}
       style={StyleSheet.absoluteFill}
     /> : <LinearGradient
       pointerEvents="none"
-      colors={['rgba(141, 187, 255, 0.05)', 'rgba(13, 34, 46, 0)']}
+      colors={['rgba(121, 180, 255, 0.05)', 'rgba(4, 16, 28, 0)']}
       locations={[0, 0.62]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}

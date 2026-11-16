@@ -18,8 +18,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     borderWidth: 1,
-    borderColor: 'rgba(141, 187, 255, 0.28)',
-    backgroundColor: 'rgba(141, 187, 255, 0.09)',
+    borderColor: 'rgba(121, 180, 255, 0.30)',
+    backgroundColor: 'rgba(121, 180, 255, 0.10)',
     borderRadius: 999,
     paddingVertical: 4,
     paddingHorizontal: 10,
@@ -35,6 +35,6 @@ const styles = StyleSheet.create({
     fontSize: 9,
     lineHeight: 13,
     letterSpacing: 0.8,
-    color: '#C8DBF2',
+    color: '#C9D9E8',
   },
 });

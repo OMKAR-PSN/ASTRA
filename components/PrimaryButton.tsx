@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react-native';
+import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
 import { colors, fonts, radius, spacing } from '@/constants/theme';
@@ -10,6 +11,7 @@ type PrimaryButtonProps = {
   disabled?: boolean;
   accessibilityHint?: string;
   Icon?: LucideIcon;
+  style?: ViewStyle;
 };
 
 export function PrimaryButton({
@@ -19,10 +21,12 @@ export function PrimaryButton({
   disabled = false,
   accessibilityHint,
   Icon,
+  style,
 }: PrimaryButtonProps) {
   const isPrimary = variant === 'primary';
+  const [focused, setFocused] = useState(false);
   const glow = Platform.OS === 'web' && isPrimary && !disabled
-    ? { boxShadow: '0 10px 26px rgba(80, 222, 216, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.28)' } as ViewStyle
+    ? { boxShadow: '0 10px 28px rgba(0, 214, 198, 0.30), inset 0 1px 0 rgba(255, 255, 255, 0.30)' } as ViewStyle
     : undefined;
   return (
     <Pressable
@@ -32,13 +36,17 @@ export function PrimaryButton({
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
       style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
         styles.base,
         isPrimary ? styles.primary : styles.secondary,
         isPrimary && glow,
         hovered && !disabled && (isPrimary ? styles.primaryHover : styles.secondaryHover),
         pressed && !disabled && styles.pressed,
+        focused && !disabled && styles.focused,
         disabled && styles.disabled,
+        style,
       ]}
     >
       <View style={styles.content}>
@@ -69,15 +77,18 @@ const styles = StyleSheet.create({
   },
   secondary: {
     backgroundColor: 'rgba(30, 50, 71, 0.55)',
-    borderColor: 'rgba(80, 222, 216, 0.22)',
+    borderColor: 'rgba(0, 214, 198, 0.24)',
   },
   secondaryHover: {
     backgroundColor: colors.navy[700],
-    borderColor: 'rgba(80, 222, 216, 0.4)',
+    borderColor: 'rgba(0, 214, 198, 0.42)',
   },
   pressed: {
     opacity: 0.86,
   },
+  focused: Platform.OS === 'web'
+    ? ({ outlineStyle: 'solid', outlineColor: colors.primary[300], outlineWidth: 2, outlineOffset: 2 } as ViewStyle)
+    : { borderColor: colors.primary[300] },
   disabled: {
     backgroundColor: colors.navy[700],
     borderColor: colors.navy[600],

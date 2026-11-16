@@ -5,6 +5,7 @@ import Svg, { Circle, Defs, Line, LinearGradient as SvgLinearGradient, Path, Rec
 import { colors, fonts, radius, spacing, stitch, type as typography } from '@/constants/theme';
 import { DIFFERENCE_THRESHOLD_PERCENT } from '@/lib/comparison';
 import { formatTimestamp } from '@/lib/format';
+import { svgPress } from '@/lib/svgPress';
 import type { CheckIn } from '@/types/astra';
 
 type TrendBarsProps = {
@@ -14,17 +15,20 @@ type TrendBarsProps = {
   baseline: number;
   checkIns: CheckIn[];
   read: (checkIn: CheckIn) => number | null;
+  hideHeading?: boolean;
 };
 
 const CHART_HEIGHT = 228;
 const TOOLTIP_WIDTH = 154;
 
-export function TrendBars({ title, unit, decimals, baseline, checkIns, read }: TrendBarsProps) {
+const hasValue = (value: number | null | undefined): value is number => value != null && Number.isFinite(value);
+
+export function TrendBars({ title, unit, decimals, baseline, checkIns, read, hideHeading = false }: TrendBarsProps) {
   const [selection, setSelection] = useState<string | null>(null);
   const [width, setWidth] = useState(320);
   const points = [...checkIns].sort((a, b) => Date.parse(a.recordedAt) - Date.parse(b.recordedAt)).slice(-20)
     .map((entry) => ({ ...entry, value: read(entry) }));
-  const values = points.flatMap((point) => point.value !== null && Number.isFinite(point.value) ? [point.value] : []);
+  const values = points.flatMap((point) => hasValue(point.value) ? [point.value] : []);
   const min = Math.min(baseline, ...values);
   const max = Math.max(baseline, ...values);
   const padding = Math.max((max - min) * 0.22, 1);
@@ -52,7 +56,7 @@ export function TrendBars({ title, unit, decimals, baseline, checkIns, read }: T
   const bandLower = baseline * (1 - DIFFERENCE_THRESHOLD_PERCENT / 100);
   const bandUpper = baseline * (1 + DIFFERENCE_THRESHOLD_PERCENT / 100);
   const runs = points.reduce<{ index: number; value: number }[][]>((all, point, index) => {
-    if (point.value === null || !Number.isFinite(point.value)) return all;
+    if (!hasValue(point.value)) return all;
     const run = all.at(-1);
     const entry = { index, value: point.value };
     if (!run || run.at(-1)!.index !== index - 1) return [...all, [entry]];
@@ -74,13 +78,13 @@ export function TrendBars({ title, unit, decimals, baseline, checkIns, read }: T
 
   return (
     <View style={styles.wrapper} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
-      <View style={styles.heading}>
+      {hideHeading ? null : <View style={styles.heading}>
         <View>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.meta}>Recorded observations vs synthetic baseline · {unit}</Text>
         </View>
         <Text style={styles.meta}>{points.length} logged</Text>
-      </View>
+      </View>}
 
       {points.length === 0 ? <Text style={styles.meta}>Insufficient history. Save a check-in to start a trend.</Text> : (
         <>
@@ -101,10 +105,10 @@ export function TrendBars({ title, unit, decimals, baseline, checkIns, read }: T
                 </SvgLinearGradient>
               </Defs>
 
-              <Rect x={left} y={y(bandUpper)} width={Math.max(0, right - left)} height={Math.max(0, y(bandLower) - y(bandUpper))} fill="rgba(80, 222, 216, 0.05)" />
-              <Line x1={left} x2={right} y1={y(bandUpper)} y2={y(bandUpper)} stroke="rgba(80, 222, 216, 0.25)" strokeDasharray="4 5" />
-              <Line x1={left} x2={right} y1={y(bandLower)} y2={y(bandLower)} stroke="rgba(80, 222, 216, 0.25)" strokeDasharray="4 5" />
-              {width > 430 ? <SvgText x={right - 4} y={y(bandUpper) - 5} textAnchor="end" fontSize={9} fill="rgba(80, 222, 216, 0.65)">{`DEMO BAND ${tick(bandLower)}–${tick(bandUpper)}`}</SvgText> : null}
+              <Rect x={left} y={y(bandUpper)} width={Math.max(0, right - left)} height={Math.max(0, y(bandLower) - y(bandUpper))} fill="rgba(0, 214, 198, 0.05)" />
+              <Line x1={left} x2={right} y1={y(bandUpper)} y2={y(bandUpper)} stroke="rgba(0, 214, 198, 0.25)" strokeDasharray="4 5" />
+              <Line x1={left} x2={right} y1={y(bandLower)} y2={y(bandLower)} stroke="rgba(0, 214, 198, 0.25)" strokeDasharray="4 5" />
+              {width > 430 ? <SvgText x={right - 4} y={y(bandUpper) - 5} textAnchor="end" fontSize={9} fill="rgba(0, 214, 198, 0.65)">{`DEMO BAND ${tick(bandLower)}–${tick(bandUpper)}`}</SvgText> : null}
 
               {[lower, (upper + lower) / 2, upper].map((value) => (
                 <Line key={value} x1={left} x2={right} y1={y(value)} y2={y(value)} stroke="rgba(40, 60, 80, 0.55)" strokeWidth={1} />
@@ -115,18 +119,18 @@ export function TrendBars({ title, unit, decimals, baseline, checkIns, read }: T
 
               <Line x1={left} x2={right} y1={y(baseline)} y2={y(baseline)} stroke={colors.secondary[400]} strokeDasharray="5 5" strokeOpacity={0.7} />
 
-              {runs.map((run) => <Path key={`area-${run[0].index}`} d={areaPath(run)} fill={`url(#area-${title.replaceAll(' ', '-')})`} />)}
+              {runs.filter((run) => run.length > 1).map((run) => <Path key={`area-${run[0].index}`} d={areaPath(run)} fill={`url(#area-${title.replaceAll(' ', '-')})`} />)}
               {points.map((point, index) => {
                 const previous = points[index - 1];
-                return point.value !== null && previous?.value != null ? (
+                return hasValue(point.value) && hasValue(previous?.value) ? (
                   <Line key={point.id} x1={x(index - 1)} y1={y(previous.value)} x2={x(index)} y2={y(point.value)} stroke={colors.primary[400]} strokeWidth={2.2} strokeLinecap="round" />
                 ) : null;
               })}
-              {points.map((point, index) => point.value !== null ? (
+              {points.map((point, index) => hasValue(point.value) ? (
                 <Circle key={point.id} cx={x(index)} cy={y(point.value)} r={selected?.id === point.id ? 5.5 : 3.6}
                   fill={review(point.value) ? colors.accent[400] : colors.primary[400]}
                   stroke="#091624" strokeWidth={2}
-                  onPress={() => setSelection(point.id)} />
+                  {...svgPress(() => setSelection(point.id))} />
               ) : null)}
 
               {points.length === 1 ? <SvgText x={(left + right) / 2} y={CHART_HEIGHT - 10} textAnchor="middle" fontSize={9} fill={colors.primary[400]}>{timeLabel(points[0].recordedAt)}</SvgText> : null}
@@ -180,7 +184,7 @@ const styles = StyleSheet.create({
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   legendLine: { width: 14, height: 2, borderRadius: 1, backgroundColor: colors.primary[400] },
   legendDash: { width: 14, height: 0, borderTopWidth: 1, borderStyle: 'dashed', borderTopColor: colors.secondary[400] },
-  legendBand: { width: 14, height: 7, borderRadius: 2, backgroundColor: 'rgba(80, 222, 216, 0.10)', borderWidth: 1, borderColor: 'rgba(80, 222, 216, 0.22)' },
+  legendBand: { width: 14, height: 7, borderRadius: 2, backgroundColor: 'rgba(0, 214, 198, 0.10)', borderWidth: 1, borderColor: 'rgba(0, 214, 198, 0.22)' },
   legendText: { fontFamily: fonts.mono, fontSize: 9, lineHeight: 13, color: colors.slate[400] },
   units: { marginLeft: 'auto', color: colors.slate[500], letterSpacing: 0.6 },
   canvas: {
@@ -199,7 +203,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(80, 222, 216, 0.32)',
+    borderColor: 'rgba(0, 214, 198, 0.32)',
     backgroundColor: 'rgba(9, 29, 42, 0.92)',
   },
   tooltipReview: { borderColor: 'rgba(243, 193, 107, 0.45)', backgroundColor: 'rgba(58, 40, 16, 0.88)' },
@@ -209,7 +213,7 @@ const styles = StyleSheet.create({
   selected: { fontFamily: fonts.semibold, fontSize: 12, lineHeight: 17, color: colors.offWhite },
   points: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, paddingTop: 2 },
   point: { minHeight: 38, paddingVertical: 4, paddingHorizontal: 7, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(40, 60, 80, 0.8)', borderRadius: 6, backgroundColor: 'rgba(9, 29, 42, 0.45)' },
-  active: { borderColor: 'rgba(80, 222, 216, 0.45)', backgroundColor: 'rgba(80, 222, 216, 0.10)' },
+  active: { borderColor: 'rgba(0, 214, 198, 0.45)', backgroundColor: 'rgba(0, 214, 198, 0.10)' },
   pointLabel: { fontFamily: fonts.mono, fontSize: 8, lineHeight: 11, color: colors.slate[500] },
   pointLabelActive: { color: colors.primary[400] },
   pointValue: { fontFamily: fonts.mono, fontSize: 10, lineHeight: 14, color: colors.slate[300], fontVariant: ['tabular-nums'] },

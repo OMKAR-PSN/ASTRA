@@ -16,7 +16,7 @@ type SessionContextValue = SessionState & {
   storageDescription: string;
   latestCheckIn: CheckIn | null;
   findReportForCheckIn: (checkInId: string) => ReportRecord | undefined;
-  saveCheckIn: (draft: CheckInDraft) => Promise<void>;
+  saveCheckIn: (draft: CheckInDraft) => Promise<CheckIn>;
   confirmReport: (checkInId: string) => Promise<void>;
   setLinkAvailable: (available: boolean) => void;
   retryReport: (reportId: string) => void;
@@ -51,6 +51,7 @@ export function SessionProvider({ children, repository = sessionRepository, stor
   const saveCheckIn = useCallback(async (draft: CheckInDraft) => {
     const checkIn = await repository.saveCheckIn(draft, new Date().toISOString());
     setState((current) => ({ ...current, checkIns: [...current.checkIns, checkIn] }));
+    return checkIn;
   }, [repository]);
 
   const confirmReport = useCallback(async (checkInId: string) => {

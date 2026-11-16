@@ -1,4 +1,4 @@
-import { Database, Orbit } from 'lucide-react-native';
+import { Database, Info, Orbit, ScanLine } from 'lucide-react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View, type ViewStyle, Platform } from 'react-native';
 
@@ -17,10 +17,10 @@ export function SideRail() {
   return (
     <Surface variant="glass" padded={false} style={styles.rail}>
       <View style={styles.brandRow}>
-        <View style={styles.brandIcon}><Orbit size={20} color={colors.primary[400]} strokeWidth={2.2} /></View>
+        <View style={styles.brandIcon}><Orbit size={24} color={colors.primary[300]} strokeWidth={2} /></View>
         <View style={styles.brandText}>
           <Text style={styles.brand}>ASTRA CARE</Text>
-          <Text style={styles.caption} numberOfLines={1}>{crewProfile.missionName.replace(' (simulated)', '').toUpperCase()}</Text>
+          <Text style={styles.brandSub}>Astronaut health{'\n'}monitoring &amp; self-assessment</Text>
         </View>
       </View>
 
@@ -47,36 +47,55 @@ export function SideRail() {
         })}
       </View>
 
+      <Pressable
+        accessibilityRole="link"
+        accessibilityLabel="Identify crew member"
+        accessibilityState={{ selected: pathname === '/identify' }}
+        onPress={() => router.navigate('/identify')}
+        style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
+          styles.identify,
+          pathname === '/identify' && styles.identifyActive,
+          (hovered || pressed) && styles.identifyHover,
+        ]}
+      >
+        <View style={styles.identifyIcon}><ScanLine size={18} color={colors.primary[300]} strokeWidth={2.1} /></View>
+        <View style={styles.identifyCopy}>
+          <Text style={styles.identifyTitle}>Identify crew member</Text>
+          <Text style={styles.identifyMeta}>Fictional crew demo</Text>
+        </View>
+      </Pressable>
+
       <View style={styles.footer}>
         <View style={styles.storage}>
           <View style={styles.storageHeader}>
-            <View style={styles.inline}><Database size={13} color={colors.primary[400]} strokeWidth={2} /><Text style={styles.storageLabel}>LOCAL RECORDS</Text></View>
+            <View style={styles.inline}><Database size={13} color={colors.primary[300]} strokeWidth={2} /><Text style={styles.storageLabel}>LOCAL STORE</Text></View>
             <View style={styles.okPill}><View style={styles.okDot} /><Text style={styles.okText}>OFFLINE OK</Text></View>
           </View>
-          <View style={styles.storageRow}><Text style={styles.storageMeta}>Check-ins</Text><Text style={styles.storageValue}>{checkIns.length}</Text></View>
-          <View style={styles.storageRow}><Text style={styles.storageMeta}>Reports</Text><Text style={styles.storageValue}>{reports.length}</Text></View>
-          <View style={styles.storageRule} />
-          <View style={styles.storageRow}><Text style={styles.storageMeta}>Acknowledged</Text><Text style={styles.storageValue}>{acknowledged}</Text></View>
+          <Text style={styles.storageLine}>{checkIns.length} check-ins · {reports.length} reports · {acknowledged} acknowledged</Text>
+          <Text style={styles.storageMission} numberOfLines={1}>{crewProfile.missionName.replace(' (simulated)', '').toUpperCase()} · FD {crewProfile.missionDay}</Text>
         </View>
-        <View style={styles.versionBlock}>
-          <Text style={styles.version}>v1.0 · Space Apps Demo</Text>
-          <Text style={styles.protocol}>Fictional crew · Synthetic protocol</Text>
+        <View style={styles.prototype}>
+          <Info size={12} color={colors.slate[400]} strokeWidth={2} />
+          <Text style={styles.prototypeLabel}>Research &amp; Educational Prototype</Text>
         </View>
+        <Text style={styles.version}>v1.0 · Synthetic protocol · Fictional crew</Text>
       </View>
     </Surface>
   );
 }
 
+const glow = Platform.OS === 'web' ? { boxShadow: '0 0 26px rgba(0, 214, 198, 0.24)' } as ViewStyle : {};
+
 const styles = StyleSheet.create({
   rail: {
     width: layout.railWidth,
     height: '100%',
-    paddingTop: spacing.sm + 4,
-    paddingHorizontal: 12,
-    paddingBottom: spacing.sm,
+    paddingTop: spacing.sm + 8,
+    paddingHorizontal: 16,
+    paddingBottom: spacing.sm + 4,
     borderWidth: 0,
     borderRightWidth: 1,
-    borderRightColor: 'rgba(80, 222, 216, 0.08)',
+    borderRightColor: 'rgba(255, 255, 255, 0.10)',
     borderRadius: 0,
     backgroundColor: stitch.glassRail,
     gap: spacing.sm,
@@ -84,26 +103,26 @@ const styles = StyleSheet.create({
   },
   brandRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+    alignItems: 'flex-start',
+    gap: 12,
     paddingHorizontal: 6,
-    paddingTop: 4,
-    paddingBottom: 6,
+    paddingTop: 8,
+    paddingBottom: 10,
   },
   brandIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 11,
+    width: 46,
+    height: 46,
+    borderRadius: 15,
     borderWidth: 1,
-    borderColor: 'rgba(80, 222, 216, 0.25)',
-    backgroundColor: 'rgba(80, 222, 216, 0.09)',
+    borderColor: 'rgba(0, 214, 198, 0.34)',
+    backgroundColor: 'rgba(0, 214, 198, 0.10)',
     alignItems: 'center',
     justifyContent: 'center',
-    ...(Platform.OS === 'web' ? { boxShadow: '0 0 16px rgba(80, 222, 216, 0.16)' } as ViewStyle : {}),
+    ...glow,
   },
-  brandText: { gap: 2, minWidth: 0, flexShrink: 1 },
-  brand: { fontFamily: fonts.semibold, fontSize: 11, lineHeight: 15, letterSpacing: 1.5, color: colors.primary[300] },
-  caption: { fontFamily: fonts.mono, fontSize: 9, lineHeight: 14, letterSpacing: 0.6, color: colors.slate[500] },
+  brandText: { gap: 5, minWidth: 0, flexShrink: 1, paddingTop: 1 },
+  brand: { fontFamily: fonts.semibold, fontSize: 20, lineHeight: 24, letterSpacing: 0.6, color: colors.offWhite },
+  brandSub: { fontFamily: fonts.regular, fontSize: 10.5, lineHeight: 14, color: colors.slate[300] },
   navLabel: {
     fontFamily: fonts.semibold,
     fontSize: 9,
@@ -111,59 +130,96 @@ const styles = StyleSheet.create({
     letterSpacing: 1.1,
     textTransform: 'uppercase',
     color: colors.slate[500],
-    paddingHorizontal: 10,
-    marginTop: 2,
+    paddingHorizontal: 11,
+    marginTop: 6,
   },
-  list: { gap: 3 },
-  item: {
-    minHeight: 42,
+  list: { gap: 4 },
+  identify: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 11,
+    minHeight: 54,
     paddingHorizontal: 11,
-    borderRadius: radius.sm,
+    paddingVertical: 8,
+    marginTop: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 214, 198, 0.22)',
+    backgroundColor: 'rgba(0, 214, 198, 0.06)',
+  },
+  identifyActive: { borderColor: 'rgba(0, 214, 198, 0.48)', backgroundColor: 'rgba(0, 214, 198, 0.12)' },
+  identifyHover: { backgroundColor: 'rgba(0, 214, 198, 0.11)' },
+  identifyIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 214, 198, 0.30)',
+    backgroundColor: 'rgba(0, 214, 198, 0.10)',
+  },
+  identifyCopy: { gap: 1, minWidth: 0, flexShrink: 1 },
+  identifyTitle: { fontFamily: fonts.semibold, fontSize: 12, lineHeight: 17, color: colors.offWhite },
+  identifyMeta: { fontFamily: fonts.regular, fontSize: 10, lineHeight: 14, color: colors.slate[400] },
+  item: {
+    minHeight: 46,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: 'transparent',
   },
   itemActive: {
     backgroundColor: colors.primary[400],
     borderColor: colors.primary[300],
-    ...(Platform.OS === 'web' ? { boxShadow: '0 0 20px rgba(80, 222, 216, 0.20)' } as ViewStyle : {}),
+    ...(Platform.OS === 'web' ? { boxShadow: '0 12px 30px rgba(0, 214, 198, 0.26)' } as ViewStyle : {}),
   },
   itemHover: {
-    backgroundColor: 'rgba(36, 55, 68, 0.55)',
-    borderColor: 'rgba(40, 60, 80, 0.8)',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderColor: 'rgba(255, 255, 255, 0.09)',
   },
   itemLabel: {
     fontFamily: fonts.regular,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 14,
+    lineHeight: 20,
     color: colors.slate[300],
   },
   itemLabelActive: {
     fontFamily: fonts.semibold,
     color: colors.primary.ink,
   },
-  footer: { marginTop: 'auto', gap: 10, paddingHorizontal: 2, paddingTop: 12 },
+  footer: { marginTop: 'auto', gap: 9, paddingHorizontal: 4, paddingTop: 16 },
   storage: {
-    gap: 6,
+    gap: 7,
     padding: 11,
-    backgroundColor: 'rgba(9, 29, 42, 0.72)',
+    backgroundColor: 'rgba(4, 16, 28, 0.52)',
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: 'rgba(141, 187, 255, 0.14)',
+    borderColor: 'rgba(255, 255, 255, 0.09)',
   },
   storageHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6 },
   inline: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  storageLabel: { fontFamily: fonts.semibold, fontSize: 8, lineHeight: 12, letterSpacing: 0.9, color: colors.slate[300] },
-  okPill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 2, paddingHorizontal: 5, borderRadius: 4, backgroundColor: stitch.greenMuted, borderWidth: 1, borderColor: 'rgba(101, 215, 171, 0.28)' },
+  storageLabel: { fontFamily: fonts.semibold, fontSize: 8.5, lineHeight: 12, letterSpacing: 0.9, color: colors.slate[200] },
+  okPill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 2, paddingHorizontal: 5, borderRadius: 5, backgroundColor: stitch.greenMuted, borderWidth: 1, borderColor: 'rgba(134, 227, 180, 0.28)' },
   okDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: colors.success[400] },
   okText: { fontFamily: fonts.mono, fontSize: 7, lineHeight: 11, letterSpacing: 0.5, color: colors.success[400] },
-  storageRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  storageMeta: { fontFamily: fonts.regular, fontSize: 11, lineHeight: 16, color: colors.slate[400] },
-  storageValue: { fontFamily: fonts.mono, fontSize: 12, lineHeight: 16, color: colors.offWhite, fontVariant: ['tabular-nums'] },
-  storageRule: { height: 1, backgroundColor: 'rgba(40, 60, 80, 0.7)', marginVertical: 1 },
-  versionBlock: { gap: 3, paddingHorizontal: 4 },
-  version: { fontFamily: fonts.mono, fontSize: 9, lineHeight: 13, color: colors.slate[500] },
-  protocol: { fontFamily: fonts.semibold, fontSize: 8, lineHeight: 12, letterSpacing: 0.9, color: colors.slate[500] },
+  storageLine: { fontFamily: fonts.regular, fontSize: 10.5, lineHeight: 15, color: colors.slate[400] },
+  storageMission: { fontFamily: fonts.mono, fontSize: 8.5, lineHeight: 12, letterSpacing: 0.5, color: colors.primary[300] },
+  prototype: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    minHeight: 34,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.14)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    paddingHorizontal: 8,
+  },
+  prototypeLabel: { fontFamily: fonts.semibold, fontSize: 9.5, lineHeight: 14, color: colors.slate[300] },
+  version: { fontFamily: fonts.mono, fontSize: 8.5, lineHeight: 12, color: colors.slate[500], textAlign: 'center' },
 });

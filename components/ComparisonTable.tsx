@@ -12,7 +12,7 @@ const columns = ['Metric', 'Baseline', 'Current', 'Change', 'Percent'];
 
 export function ComparisonTable({ comparisons }: ComparisonTableProps) {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scroll}>
       <View style={styles.table}>
         <View style={[styles.row, styles.headerRow]}>
           {columns.map((column, index) => (
@@ -49,6 +49,7 @@ export function ComparisonTable({ comparisons }: ComparisonTableProps) {
 }
 
 const styles = StyleSheet.create({
+  scroll: { flexGrow: 0 },
   table: {
     minWidth: 560,
     borderRadius: radius.md,

@@ -16,7 +16,7 @@ export default function TabLayout() {
         headerShown: false,
         tabBarHideOnKeyboard: true,
         tabBarBackground: () => <Surface variant="glass" padded={false} style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, borderRadius: 20 }} />,
-        tabBarActiveBackgroundColor: 'rgba(80, 222, 216, 0.12)',
+        tabBarActiveBackgroundColor: 'rgba(0, 214, 198, 0.12)',
         tabBarActiveTintColor: colors.primary[300],
         tabBarInactiveTintColor: colors.slate[400],
         tabBarItemStyle: { borderRadius: 14, marginVertical: 6, marginHorizontal: 2 },

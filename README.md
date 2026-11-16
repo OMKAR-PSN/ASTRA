@@ -2,6 +2,17 @@
 
 Use synthetic readings only. The mobile and web clients share one Expo Router project.
 
+## Expo Go on a phone (SDK 58)
+
+See [VS Code / PowerShell setup](docs/EXPO_GO_SETUP.md). The dependency lockfile is aligned with Expo SDK 58.
+
+```powershell
+npm.cmd ci
+npm.cmd run start:phone
+```
+
+Use the new QR code with Expo Go supporting SDK 58, on the same Wi-Fi. If LAN access fails, stop Metro and use `npm.cmd run start:tunnel`. The ground receiver is optional for check-ins and local reports.
+
 ## Run locally
 
 From the project root in PowerShell, install dependencies with `npm.cmd ci`. Use Node 22.19 or later in the Node 22 series, or a supported newer release.

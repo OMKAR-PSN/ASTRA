@@ -2,41 +2,41 @@ import { Platform, type TextStyle } from 'react-native';
 
 export const colors = {
   navy: {
-    950: '#080F1C',
-    900: '#0D1828',
-    850: '#0E2032',
-    800: '#132236',
-    750: '#192A3F',
-    700: '#1E3247',
-    650: '#243744',
-    600: '#283C50',
-    550: '#1D3044',
+    950: '#030B14',
+    900: '#061525',
+    850: '#081D30',
+    800: '#0B2439',
+    750: '#0F2D46',
+    700: '#143A58',
+    650: '#1B4D7A',
+    600: '#285E88',
+    550: '#173A53',
   },
   slate: {
-    500: '#6B8299',
-    400: '#94AABD',
-    300: '#A9BDCE',
-    200: '#D5E0EB',
+    500: '#7B93AA',
+    400: '#A6BBD0',
+    300: '#C9D9E8',
+    200: '#E6F2FF',
   },
-  offWhite: '#F5F8FC',
+  offWhite: '#F9FCFF',
   primary: {
-    300: '#72FBF4',
-    400: '#50DED8',
-    500: '#36C7C1',
-    ink: '#041017',
+    300: '#7DFBF0',
+    400: '#00D6C6',
+    500: '#00B7AA',
+    ink: '#031512',
   },
   secondary: {
-    400: '#8DBBFF',
+    400: '#79B4FF',
   },
   accent: {
-    400: '#F3C16B',
+    400: '#F2C078',
     ink: '#1A1204',
   },
   success: {
-    400: '#65D7AB',
+    400: '#86E3B4',
   },
   error: {
-    400: '#F27B82',
+    400: '#FF8F97',
   },
 } as const;
 
@@ -49,10 +49,10 @@ export const spacing = {
 } as const;
 
 export const radius = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
+  sm: 10,
+  md: 14,
+  lg: 20,
+  xl: 26,
 } as const;
 
 export const fonts = {
@@ -64,15 +64,15 @@ export const fonts = {
 
 export const layout = {
   maxContentWidth: 1600,
-  railWidth: 240,
+  railWidth: 252,
   desktopBreakpoint: 1180,
-  desktopPadding: 32,
-  sectionGap: 32,
+  desktopPadding: 26,
+  sectionGap: 30,
 } as const;
 
 export const tokens = {
   background: { primary: colors.navy[950], secondary: colors.navy[900] },
-  surface: { default: colors.navy[800], elevated: colors.navy[700], input: '#011522' },
+  surface: { default: colors.navy[800], elevated: colors.navy[700], input: '#041322' },
   border: { default: colors.navy[600] },
   text: { primary: colors.offWhite, secondary: colors.slate[300], muted: colors.slate[500] },
   action: { primary: colors.primary[400] },
@@ -82,33 +82,33 @@ export const tokens = {
 // Stitch spacing names are additive: existing screen spacing remains stable.
 export const stitch = {
   spacing: { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, xxxl: 32 },
-  glass: 'rgba(13, 34, 46, 0.72)',
-  glassStrong: 'rgba(13, 34, 46, 0.86)',
-  glassRail: 'rgba(9, 21, 34, 0.88)',
-  glassHeader: 'rgba(9, 21, 34, 0.82)',
-  glassInset: 'rgba(9, 29, 42, 0.72)',
-  glassDeep: 'rgba(0, 16, 27, 0.72)',
-  glassBorder: 'rgba(141, 187, 255, 0.18)',
-  glassBorderStrong: 'rgba(80, 222, 216, 0.22)',
-  highlight: 'rgba(200, 235, 255, 0.06)',
-  cyanMuted: 'rgba(80, 222, 216, 0.12)',
-  blueMuted: 'rgba(141, 187, 255, 0.12)',
-  amberMuted: 'rgba(243, 193, 107, 0.12)',
-  greenMuted: 'rgba(101, 215, 171, 0.12)',
-  redMuted: 'rgba(240, 121, 131, 0.12)',
-  panel: '#0E2032',
-  panelDeep: '#091624',
-  chart: colors.navy[800],
-  shadow: '0 18px 44px rgba(0, 6, 18, 0.45)',
-  shadowSoft: '0 8px 24px rgba(0, 8, 20, 0.35)',
+  glass: 'rgba(8, 24, 39, 0.58)',
+  glassStrong: 'rgba(6, 19, 33, 0.76)',
+  glassRail: 'rgba(5, 17, 29, 0.62)',
+  glassHeader: 'rgba(6, 20, 33, 0.58)',
+  glassInset: 'rgba(4, 15, 26, 0.62)',
+  glassDeep: 'rgba(3, 12, 22, 0.72)',
+  glassBorder: 'rgba(255, 255, 255, 0.14)',
+  glassBorderStrong: 'rgba(0, 214, 198, 0.42)',
+  highlight: 'rgba(255, 255, 255, 0.10)',
+  cyanMuted: 'rgba(0, 214, 198, 0.14)',
+  blueMuted: 'rgba(121, 180, 255, 0.14)',
+  amberMuted: 'rgba(242, 192, 120, 0.14)',
+  greenMuted: 'rgba(134, 227, 180, 0.14)',
+  redMuted: 'rgba(255, 143, 151, 0.14)',
+  panel: '#0A2337',
+  panelDeep: '#041322',
+  chart: '#071B2B',
+  shadow: '0 28px 70px rgba(0, 4, 12, 0.58)',
+  shadowSoft: '0 14px 34px rgba(0, 5, 14, 0.42)',
 } as const;
 
 export const type: Record<string, TextStyle> = {
-  hero: { fontFamily: fonts.semibold, fontSize: 40, lineHeight: 48, letterSpacing: -0.8 },
-  heroMobile: { fontFamily: fonts.semibold, fontSize: 30, lineHeight: 36, letterSpacing: -0.45 },
-  headline: { fontFamily: fonts.semibold, fontSize: 28, lineHeight: 36, letterSpacing: -0.42 },
-  headlineMobile: { fontFamily: fonts.semibold, fontSize: 22, lineHeight: 28, letterSpacing: -0.22 },
-  section: { fontFamily: fonts.semibold, fontSize: 20, lineHeight: 26, letterSpacing: -0.2 },
+  hero: { fontFamily: fonts.semibold, fontSize: 42, lineHeight: 50, letterSpacing: -1 },
+  heroMobile: { fontFamily: fonts.semibold, fontSize: 30, lineHeight: 36, letterSpacing: -0.5 },
+  headline: { fontFamily: fonts.semibold, fontSize: 30, lineHeight: 38, letterSpacing: -0.5 },
+  headlineMobile: { fontFamily: fonts.semibold, fontSize: 23, lineHeight: 30, letterSpacing: -0.3 },
+  section: { fontFamily: fonts.semibold, fontSize: 21, lineHeight: 27, letterSpacing: -0.25 },
   sectionMobile: { fontFamily: fonts.semibold, fontSize: 18, lineHeight: 24, letterSpacing: -0.1 },
   cardTitle: { fontFamily: fonts.semibold, fontSize: 16, lineHeight: 22, letterSpacing: -0.08 },
   label: { fontFamily: fonts.semibold, fontSize: 10, lineHeight: 14, letterSpacing: 0.8, textTransform: 'uppercase' },
@@ -118,6 +118,6 @@ export const type: Record<string, TextStyle> = {
   meta: { fontFamily: fonts.regular, fontSize: 11, lineHeight: 16 },
   mono: { fontFamily: fonts.mono, fontSize: 12, lineHeight: 18, fontVariant: ['tabular-nums'] },
   monoSmall: { fontFamily: fonts.mono, fontSize: 11, lineHeight: 16, fontVariant: ['tabular-nums'] },
-  numeral: { fontFamily: fonts.mono, fontSize: 34, lineHeight: 40, letterSpacing: -0.6, fontVariant: ['tabular-nums'] },
-  numeralSmall: { fontFamily: fonts.mono, fontSize: 22, lineHeight: 28, letterSpacing: -0.3, fontVariant: ['tabular-nums'] },
+  numeral: { fontFamily: fonts.semibold, fontSize: 36, lineHeight: 42, letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
+  numeralSmall: { fontFamily: fonts.semibold, fontSize: 23, lineHeight: 29, letterSpacing: -0.4, fontVariant: ['tabular-nums'] },
 };

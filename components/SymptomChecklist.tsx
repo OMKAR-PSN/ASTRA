@@ -1,7 +1,8 @@
 import { Check } from 'lucide-react-native';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
-import { colors, fonts, radius, spacing } from '@/constants/theme';
+import { colors, fonts, radius, stitch, type as typography } from '@/constants/theme';
 
 type SymptomChecklistProps = {
   options: readonly string[];
@@ -10,6 +11,7 @@ type SymptomChecklistProps = {
 };
 
 export function SymptomChecklist({ options, selected, onChange }: SymptomChecklistProps) {
+  const [focused, setFocused] = useState<string | null>(null);
   const toggle = (option: string) => {
     if (option === 'None') { onChange([]); return; }
     onChange(selected.includes(option) ? selected.filter((item) => item !== option) : [...selected, option]);
@@ -26,15 +28,19 @@ export function SymptomChecklist({ options, selected, onChange }: SymptomCheckli
             accessibilityLabel={option}
             aria-checked={checked}
             onPress={() => toggle(option)}
+            onFocus={() => setFocused(option)}
+            onBlur={() => setFocused((current) => (current === option ? null : current))}
             style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
               styles.row,
-              (hovered || pressed) && styles.rowHover,
+              checked && styles.rowChecked,
+              (hovered || pressed) && !checked && styles.rowHover,
+              focused === option && styles.rowFocused,
             ]}
           >
             <View style={[styles.box, checked && styles.boxChecked]}>
-              {checked ? <Check size={16} color={colors.primary.ink} strokeWidth={3} /> : null}
+              {checked ? <Check size={13} color={colors.primary.ink} strokeWidth={3} /> : null}
             </View>
-            <Text style={styles.label}>{option}</Text>
+            <Text style={[styles.label, checked && styles.labelChecked]}>{option}</Text>
           </Pressable>
         );
       })}
@@ -46,39 +52,48 @@ const styles = StyleSheet.create({
   list: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.xs,
+    gap: 8,
   },
   row: {
-    minHeight: 48,
+    minHeight: 42,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.xs,
-    borderRadius: radius.md,
+    gap: 8,
+    paddingHorizontal: 11,
+    borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: colors.navy[600],
-    backgroundColor: colors.navy[900],
+    borderColor: 'rgba(40, 60, 80, 0.9)',
+    backgroundColor: stitch.panelDeep,
   },
   rowHover: {
-    backgroundColor: colors.navy[700],
+    backgroundColor: 'rgba(30, 50, 71, 0.7)',
+  },
+  rowFocused: Platform.OS === 'web'
+    ? ({ outlineStyle: 'solid', outlineColor: colors.primary[300], outlineWidth: 2, outlineOffset: 2 } as ViewStyle)
+    : { borderColor: colors.primary[300] },
+  rowChecked: {
+    borderColor: stitch.glassBorderStrong,
+    backgroundColor: stitch.cyanMuted,
   },
   box: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: colors.slate[400],
+    width: 18,
+    height: 18,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: colors.slate[500],
     alignItems: 'center',
     justifyContent: 'center',
   },
   boxChecked: {
     backgroundColor: colors.primary[400],
-    borderColor: colors.primary[400],
+    borderColor: colors.primary[300],
   },
   label: {
-    fontFamily: fonts.regular,
-    fontSize: 15,
-    lineHeight: 22,
+    ...typography.bodySmall,
+    color: colors.slate[200],
+  },
+  labelChecked: {
+    fontFamily: fonts.semibold,
     color: colors.offWhite,
   },
 });

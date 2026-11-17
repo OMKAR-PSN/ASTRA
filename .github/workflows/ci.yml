@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: ["main"]
 
+env:
+  CI: true
+  EXPO_NO_TELEMETRY: 1
+  EXPO_NO_DOTEXPO: 1
+  EXPO_PUBLIC_RECEIVER_URL: ""
+
 jobs:
   quality:
     name: Typecheck · Lint · Test · Build
@@ -35,7 +41,3 @@ jobs:
 
       - name: Production web export
         run: npm run build:web
-        env:
-          # Receiver URL is intentionally unset in CI.
-          # All local features remain fully testable without it.
-          EXPO_PUBLIC_RECEIVER_URL: ""

@@ -1,11 +1,14 @@
-import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { colors, fonts, spacing } from '@/constants/theme';
 
+import { createSessionTaskScope } from '@/lib/sessionTaskScope';
 import { receiverUrl, submitReport } from '@/lib/receiver';
+import type { EngagementEventKind } from '@/lib/engagement';
+import type { SessionRepository } from '@/lib/sessionRepositoryContract';
 import { sessionRepository, storageDescription } from '@/lib/sessionRepository';
 import { initialSessionState, type SessionState } from '@/state/sessionReducer';
 import type { CheckIn, CheckInDraft, ReportRecord } from '@/types/astra';
@@ -15,28 +18,40 @@ type SessionContextValue = SessionState & {
   storageDescription: string;
   latestCheckIn: CheckIn | null;
   findReportForCheckIn: (checkInId: string) => ReportRecord | undefined;
-  saveCheckIn: (draft: CheckInDraft) => Promise<void>;
+  saveCheckIn: (draft: CheckInDraft) => Promise<CheckIn>;
   confirmReport: (checkInId: string) => Promise<void>;
   setLinkAvailable: (available: boolean) => void;
   retryReport: (reportId: string) => void;
+  recordEngagement: (kind: EngagementEventKind) => Promise<void>;
+  setJourneyVisible: (visible: boolean) => Promise<void>;
 };
 
 const SessionContext = createContext<SessionContextValue | null>(null);
 
-export function SessionProvider({ children }: { children: ReactNode }) {
+export function SessionProvider({ children, repository = sessionRepository, storageLabel = storageDescription }: { children: ReactNode; repository?: SessionRepository; storageLabel?: string }) {
   const [state, setState] = useState<SessionState>(initialSessionState);
+  const [loadedRepository, setLoadedRepository] = useState<SessionRepository | null>(null);
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
 
+  const scope = useMemo(() => createSessionTaskScope(), [repository]);
+  const sending = useMemo(() => new Set<string>(), [repository]);
+
+  // Never expose the previous session's records while a new repository is loading.
+  const viewState: SessionState = loadedRepository === repository ? state : initialSessionState;
+
   useEffect(() => {
     let active = true;
+    scope.activate();
+    setState(initialSessionState);
+    setLoadedRepository(repository);
     setLoading(true);
     setLoadError(null);
-    sessionRepository.load().then((saved) => {
+    repository.load().then((saved) => {
       if (active) {
-        setState((current) => ({ ...current, checkIns: saved.checkIns, reports: saved.reports }));
+        setState((current) => ({ ...current, checkIns: saved.checkIns, reports: saved.reports, engagement: saved.engagement }));
         setReady(true);
       }
     }).catch(() => {
@@ -44,77 +59,100 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }).finally(() => {
       if (active) setLoading(false);
     });
-    return () => { active = false; };
-  }, [loadAttempt]);
+    return () => { active = false; scope.invalidate(); };
+  }, [loadAttempt, repository, scope]);
 
   const saveCheckIn = useCallback(async (draft: CheckInDraft) => {
-    const checkIn = await sessionRepository.saveCheckIn(draft, new Date().toISOString());
+    const isCurrent = scope.capture();
+    const checkIn = await repository.saveCheckIn(draft, new Date().toISOString());
+    if (!isCurrent()) throw new Error('Session changed while saving.');
     setState((current) => ({ ...current, checkIns: [...current.checkIns, checkIn] }));
-  }, []);
+    return checkIn;
+  }, [repository, scope]);
 
   const confirmReport = useCallback(async (checkInId: string) => {
-    const report = await sessionRepository.confirmReport(checkInId, new Date().toISOString());
+    const isCurrent = scope.capture();
+    const report = await repository.confirmReport(checkInId, new Date().toISOString());
+    if (!isCurrent()) return;
     setState((current) => current.reports.some((item) => item.id === report.id)
       ? current
       : { ...current, reports: [...current.reports, report] });
-  }, []);
+  }, [repository, scope]);
 
   const setLinkAvailable = useCallback((available: boolean) => {
     setState((current) => ({ ...current, linkAvailable: available }));
   }, []);
 
-  const sending = useRef(new Set<string>());
-  const retryReport = useCallback(async (reportId: string) => {
-    const report = state.reports.find((item) => item.id === reportId);
-    if (!report || report.status === 'acknowledged' || sending.current.has(reportId)) return;
+  const recordEngagement = useCallback(async (kind: EngagementEventKind) => {
+    if (!viewState.engagement.journeyVisible || viewState.engagement.events.some((event) => event.kind === kind)) return;
+    const isCurrent = scope.capture();
+    const engagement = await repository.recordEngagement(kind, new Date().toISOString());
+    if (isCurrent()) setState((current) => ({ ...current, engagement }));
+  }, [viewState.engagement, repository, scope]);
 
-    const setReport = (updated: ReportRecord) => setState((current) => ({
-      ...current,
-      reports: current.reports.map((item) => item.id === reportId ? updated : item),
-    }));
-    if (!state.linkAvailable || !receiverUrl) {
+  const setJourneyVisible = useCallback(async (visible: boolean) => {
+    const isCurrent = scope.capture();
+    const engagement = await repository.setJourneyVisible(visible);
+    if (isCurrent()) setState((current) => ({ ...current, engagement }));
+  }, [repository, scope]);
+
+  const retryReport = useCallback(async (reportId: string) => {
+    const isCurrent = scope.capture();
+    const report = viewState.reports.find((item) => item.id === reportId);
+    if (!report || report.status === 'acknowledged' || sending.has(reportId)) return;
+
+    const setReport = (updated: ReportRecord) => {
+      if (!isCurrent()) return;
+      setState((current) => ({
+        ...current,
+        reports: current.reports.map((item) => item.id === reportId ? updated : item),
+      }));
+    };
+    if (!viewState.linkAvailable || !receiverUrl) {
       setReport({
         ...report,
-        retryNote: state.linkAvailable ? 'Ground receiver URL is not configured.' : 'Simulated link is unavailable.',
+        retryNote: viewState.linkAvailable ? 'Ground receiver URL is not configured.' : 'Simulated link is unavailable.',
       });
       return;
     }
 
-    sending.current.add(reportId);
+    sending.add(reportId);
     setReport({ ...report, status: 'sending', retryNote: null });
     try {
       let receipt;
       try {
         receipt = await submitReport(report);
       } catch {
-        setReport(await sessionRepository.updateDelivery(reportId, {
+        setReport(await repository.updateDelivery(reportId, {
           status: 'failed', receipt: null, retryNote: 'Delivery could not be confirmed. Retry when the receiver is reachable.',
         }));
         return;
       }
-      setReport(await sessionRepository.updateDelivery(reportId, {
+      setReport(await repository.updateDelivery(reportId, {
         status: 'acknowledged', receipt, retryNote: null,
       }));
     } catch {
       setReport({ ...report, retryNote: 'Could not save the delivery result. Retry to recover the receiver receipt.' });
     } finally {
-      sending.current.delete(reportId);
+      sending.delete(reportId);
     }
-  }, [state.linkAvailable, state.reports]);
+  }, [viewState.linkAvailable, viewState.reports, repository, scope, sending]);
 
   const value = useMemo<SessionContextValue>(() => ({
-    ...state,
+    ...viewState,
     ready,
-    storageDescription,
-    latestCheckIn: state.checkIns.at(-1) ?? null,
-    findReportForCheckIn: (checkInId) => state.reports.find((report) => report.checkInId === checkInId),
+    storageDescription: storageLabel,
+    latestCheckIn: viewState.checkIns.at(-1) ?? null,
+    findReportForCheckIn: (checkInId) => viewState.reports.find((report) => report.checkInId === checkInId),
     saveCheckIn,
     confirmReport,
     setLinkAvailable,
     retryReport,
-  }), [state, ready, saveCheckIn, confirmReport, setLinkAvailable, retryReport]);
+    recordEngagement,
+    setJourneyVisible,
+  }), [viewState, ready, saveCheckIn, confirmReport, setLinkAvailable, retryReport, recordEngagement, setJourneyVisible, storageLabel]);
 
-  if (!ready) {
+  if (!ready || loadError) {
     return createElement(
       SafeAreaView,
       { style: recoveryStyles.root },

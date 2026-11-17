@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: ["feat/stitch-ui-redesign", "main"]
+  pull_request:
+    branches: ["main"]
+
+env:
+  CI: true
+  EXPO_NO_TELEMETRY: 1
+  EXPO_NO_DOTEXPO: 1
+  EXPO_PUBLIC_RECEIVER_URL: ""
+
+jobs:
+  quality:
+    name: Typecheck · Lint · Test · Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit and receiver tests
+        run: npm test
+
+      - name: Production web export
+        run: npm run build:web

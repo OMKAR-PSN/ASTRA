@@ -2,7 +2,7 @@ import { CircleCheck, Clock, Send, TriangleAlert, Wifi, WifiOff } from 'lucide-r
 import type { LucideIcon } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, fonts, radius, spacing } from '@/constants/theme';
+import { colors, fonts, stitch } from '@/constants/theme';
 import type { DeliveryStatus } from '@/types/astra';
 
 type Tone = 'primary' | 'accent' | 'success' | 'error' | 'neutral';
@@ -15,6 +15,14 @@ const toneColor: Record<Tone, string> = {
   neutral: colors.slate[300],
 };
 
+const toneBackground: Record<Tone, string> = {
+  primary: stitch.cyanMuted,
+  accent: stitch.amberMuted,
+  success: stitch.greenMuted,
+  error: stitch.redMuted,
+  neutral: 'rgba(169, 189, 206, 0.10)',
+};
+
 type StatusPillProps = {
   label: string;
   tone: Tone;
@@ -24,8 +32,8 @@ type StatusPillProps = {
 export function StatusPill({ label, tone, Icon }: StatusPillProps) {
   const color = toneColor[tone];
   return (
-    <View style={[styles.pill, { borderColor: color }]}>
-      {Icon ? <Icon size={14} color={color} strokeWidth={2} /> : null}
+    <View style={[styles.pill, { borderColor: color + '4D', backgroundColor: toneBackground[tone] }]}>
+      {Icon ? <Icon size={12} color={color} strokeWidth={2.2} /> : null}
       <Text style={[styles.pillText, { color }]}>{label}</Text>
     </View>
   );
@@ -55,15 +63,16 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs / 2,
+    gap: 5,
     borderWidth: 1,
-    borderRadius: radius.sm,
-    paddingVertical: spacing.xs / 2,
-    paddingHorizontal: spacing.xs,
+    borderRadius: 999,
+    paddingVertical: 3,
+    paddingHorizontal: 9,
   },
   pillText: {
     fontFamily: fonts.semibold,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 10,
+    lineHeight: 14,
+    letterSpacing: 0.35,
   },
 });

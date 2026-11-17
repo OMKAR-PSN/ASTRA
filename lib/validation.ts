@@ -23,9 +23,13 @@ const parseNumber = (text: string): number | null => {
   return Number.isFinite(value) ? value : NaN;
 };
 
-export function validateDraft(draft: CheckInDraft, texts: Record<string, string>): ValidationResult {
+/** Parses and range-checks the five numeric readings without applying the at-least-one-reading rule. */
+export function parseNumericReadings(texts: Record<string, string>): {
+  readings: Pick<Readings, NumericField>;
+  errors: DraftErrors;
+} {
   const errors: DraftErrors = {};
-  const readings: Readings = { ...draft.readings };
+  const readings = {} as Pick<Readings, NumericField>;
 
   (Object.keys(readingLimits) as NumericField[]).forEach((field) => {
     const parsed = parseNumber(texts[field] ?? '');
@@ -39,6 +43,16 @@ export function validateDraft(draft: CheckInDraft, texts: Record<string, string>
     } else {
       readings[field] = parsed;
     }
+  });
+
+  return { readings, errors };
+}
+
+export function validateDraft(draft: CheckInDraft, texts: Record<string, string>): ValidationResult {
+  const { readings: parsedReadings, errors } = parseNumericReadings(texts);
+  const readings: Readings = { ...draft.readings };
+  (Object.keys(parsedReadings) as NumericField[]).forEach((field) => {
+    readings[field] = parsedReadings[field];
   });
 
   (['mood', 'stress'] as const).forEach((field) => {

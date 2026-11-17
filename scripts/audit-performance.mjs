@@ -1,0 +1,21 @@
+const { chromium } = await import(process.env.ASTRA_PLAYWRIGHT_MODULE ?? '../dist/browser-tools/node_modules/playwright-core/index.mjs');
+import{writeFile}from'node:fs/promises';
+const b=await chromium.launch({channel:'msedge'}),p=await b.newPage({viewport:{width:1440,height:900},reducedMotion:'reduce'}),base=(process.env.ASTRA_AUDIT_URL ?? 'http://127.0.0.1:8196'),results=[];
+const active=async role=>{for(const el of await role.filter({visible:true}).all())if(!await el.evaluate(e=>!!e.closest('[inert]')))return el;throw Error('No active element')};
+const click=async(role,name)=>{let el;try{el=await active(p.getByRole(role,{name,exact:true}));}catch{el=await active(p.getByRole(role==='link'?'button':'link',{name,exact:true}));}await el.evaluate(e=>e.scrollIntoView({block:'center'}));await el.click()};
+const wait=async text=>p.getByText(text,{exact:true}).filter({visible:true}).first().waitFor();
+const measure=async(name,action,ready)=>{const t=performance.now();await action();await ready();await p.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));results.push({name,ms:Math.round(performance.now()-t)})};
+try{
+await measure('Initial dashboard',()=>p.goto(base),()=>wait('Your mission health overview.'));
+await measure('Switch primary tab',()=>click('link','Health Trends'),()=>wait('Health trends'));
+await measure('Open Replay',()=>p.goto(base+'/replay'),()=>wait('Mission health replay'));
+await p.goto(base+'/');await wait('Your mission health overview.');
+await measure('Open Guided Check-In',()=>p.goto(base+'/guided-check-in'),()=>wait('Ready for your daily health check?'));
+await p.goto(base+'/identify');await wait('Identify Crew Member');await click('button','Scan Crew QR');
+await measure('Load fictional crew fixture',()=>click('button','Use Demo Crew QR'),()=>wait('FICTIONAL CREW — SYNTHETIC DEMO DATA'));
+await measure('Open Knowledge Hub',()=>p.goto(base+'/knowledge'),()=>wait('Crew Knowledge Hub'));
+await p.goto(base+'/check-in');await wait('Health check-in');
+await measure('Open Body Map',()=>click('button','Describe Symptoms on Body Map'),()=>wait('Where do you feel discomfort?'));
+await click('button','Done');await p.goto(base+'/privacy');await wait('Privacy & Crew Access');
+await measure('Activate Privacy Shield',()=>click('link','Activate Privacy Shield'),()=>p.getByTestId('privacy-shield').waitFor());
+}catch(e){results.push({error:e.message});}finally{await writeFile('dist/audit/performance.json',JSON.stringify(results,null,2));await b.close()};console.log(results);process.exitCode=results.some(item=>item.error)?1:0;

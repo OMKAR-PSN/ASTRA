@@ -6,7 +6,7 @@ const directory = 'dist/web';
 const htmlPath = join(directory, 'index.html');
 const html = await readFile(htmlPath, 'utf8');
 const registration = '<script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("/service-worker.js").catch(console.error);</script>';
-await writeFile(htmlPath, html.replace('</body>', registration + '</body>'));
+await writeFile(htmlPath, html.includes(registration) ? html : html.replace('</body>', registration + '</body>'));
 
 const files = (await readdir(directory, { recursive: true, withFileTypes: true }))
   .filter((entry) => entry.isFile() && entry.name !== 'service-worker.js')
@@ -30,10 +30,18 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   if (event.request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
+  // Metro dynamic-route filenames contain brackets. Match encoded and literal
+  // spellings, then use the original precache key for the lookup.
+  let asset;
+  try {
+    asset = files.find((file) => decodeURIComponent(file) === decodeURIComponent(url.pathname));
+  } catch {
+    return;
+  }
   if (event.request.mode === 'navigate') {
     event.respondWith(caches.open(cacheName).then((cache) => cache.match('/index.html')).then((shell) => shell || fetch(event.request)));
-  } else if (files.includes(url.pathname)) {
-    event.respondWith(caches.open(cacheName).then((cache) => cache.match(event.request, { ignoreSearch: true })).then((cached) => cached || fetch(event.request)));
+  } else if (asset) {
+    event.respondWith(caches.open(cacheName).then((cache) => cache.match(asset, { ignoreSearch: true })).then((cached) => cached || fetch(event.request)));
   }
 });
 `);

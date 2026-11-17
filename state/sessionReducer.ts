@@ -1,4 +1,7 @@
 import { createReportSnapshot } from '@/lib/snapshot';
+import { sanitizeAdaptiveResponses } from '@/lib/adaptiveQuestions';
+import { DEFAULT_ENGAGEMENT, addEngagementEvent, setJourneyVisibility, type EngagementEventKind, type EngagementState } from '@/lib/engagement';
+import { normalizeSymptomStatus, sanitizeSymptomEntries } from '@/lib/symptoms';
 import type { CheckIn, CheckInDraft, ReportRecord } from '@/types/astra';
 
 export const RECEIVER_UNAVAILABLE_NOTE = 'Ground receiver unavailable in this prototype.';
@@ -7,6 +10,7 @@ export const LINK_UNAVAILABLE_NOTE = 'Communications link unavailable. The repor
 export type SessionState = {
   checkIns: CheckIn[];
   reports: ReportRecord[];
+  engagement: EngagementState;
   linkAvailable: boolean;
 };
 
@@ -14,11 +18,14 @@ export type SessionAction =
   | { type: 'saveCheckIn'; draft: CheckInDraft; recordedAt: string }
   | { type: 'confirmReport'; checkInId: string; createdAt: string }
   | { type: 'setLinkAvailable'; available: boolean }
+  | { type: 'recordEngagement'; kind: EngagementEventKind; recordedAt: string }
+  | { type: 'setJourneyVisible'; visible: boolean }
   | { type: 'retryReport'; reportId: string };
 
 export const initialSessionState: SessionState = {
   checkIns: [],
   reports: [],
+  engagement: { ...DEFAULT_ENGAGEMENT, events: [] },
   linkAvailable: false,
 };
 
@@ -28,6 +35,12 @@ export const formatReportId = (sequence: number) => `ASTRA-${String(sequence).pa
 export function sessionReducer(state: SessionState, action: SessionAction): SessionState {
   switch (action.type) {
     case 'saveCheckIn': {
+      const symptomEntries = action.draft.symptomEntries === undefined
+        ? undefined
+        : sanitizeSymptomEntries(action.draft.symptomEntries);
+      const adaptiveResponses = action.draft.adaptiveResponses === undefined
+        ? undefined
+        : sanitizeAdaptiveResponses(action.draft.adaptiveResponses);
       const checkIn: CheckIn = {
         id: formatCheckInId(state.checkIns.length + 1),
         recordedAt: action.recordedAt,
@@ -35,6 +48,13 @@ export function sessionReducer(state: SessionState, action: SessionAction): Sess
         symptoms: action.draft.symptoms,
         activityNote: action.draft.activityNote,
       };
+      if (symptomEntries !== undefined) {
+        checkIn.symptomEntries = symptomEntries;
+        checkIn.symptomStatus = normalizeSymptomStatus(action.draft.symptomStatus, action.draft.symptoms, symptomEntries);
+      }
+      if (adaptiveResponses !== undefined && adaptiveResponses.length > 0) {
+        checkIn.adaptiveResponses = adaptiveResponses;
+      }
       return { ...state, checkIns: [...state.checkIns, checkIn] };
     }
 
@@ -56,6 +76,12 @@ export function sessionReducer(state: SessionState, action: SessionAction): Sess
 
     case 'setLinkAvailable':
       return { ...state, linkAvailable: action.available };
+
+    case 'recordEngagement':
+      return { ...state, engagement: addEngagementEvent(state.engagement, action.kind, action.recordedAt) };
+
+    case 'setJourneyVisible':
+      return { ...state, engagement: setJourneyVisibility(state.engagement, action.visible) };
 
     case 'retryReport': {
       const retryNote = state.linkAvailable ? RECEIVER_UNAVAILABLE_NOTE : LINK_UNAVAILABLE_NOTE;

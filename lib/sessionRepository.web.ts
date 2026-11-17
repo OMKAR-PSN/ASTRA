@@ -1,4 +1,7 @@
-import { emptySession, type SessionRepository, type StoredSession } from '@/lib/sessionRepositoryContract';
+import { emptySession, normalizeStoredSession, type SessionRepository, type StoredSession } from '@/lib/sessionRepositoryContract';
+import { sanitizeAdaptiveResponses } from '@/lib/adaptiveQuestions';
+import { addEngagementEvent, setJourneyVisibility, type EngagementEventKind, type EngagementState } from '@/lib/engagement';
+import { normalizeSymptomStatus, sanitizeSymptomEntries } from '@/lib/symptoms';
 import { createReportSnapshot } from '@/lib/snapshot';
 import type { CheckIn, ReportRecord } from '@/types/astra';
 
@@ -41,7 +44,8 @@ function createWebRepository(): SessionRepository {
 
   return {
     async load() {
-      return (await run((store) => store.get('data'), 'readonly')) ?? emptySession();
+      const stored = await run<Partial<StoredSession> | undefined>((store) => store.get('data'), 'readonly');
+      return stored ? normalizeStoredSession(stored) : emptySession();
     },
     async saveCheckIn(draft, recordedAt) {
       const db = await database();
@@ -51,7 +55,7 @@ function createWebRepository(): SessionRepository {
         let saved!: CheckIn;
         const request = store.get('data');
         request.onsuccess = () => {
-          const data: StoredSession = request.result ?? emptySession();
+          const data: StoredSession = normalizeStoredSession(request.result);
           saved = {
             id: `CHK-${String(data.checkIns.length + 1).padStart(3, '0')}`,
             recordedAt,
@@ -59,6 +63,12 @@ function createWebRepository(): SessionRepository {
             symptoms: [...draft.symptoms],
             activityNote: draft.activityNote,
           };
+          if (draft.symptomEntries !== undefined) {
+            saved.symptomEntries = sanitizeSymptomEntries(draft.symptomEntries);
+            saved.symptomStatus = normalizeSymptomStatus(draft.symptomStatus, saved.symptoms, saved.symptomEntries);
+          }
+          const adaptiveResponses = sanitizeAdaptiveResponses(draft.adaptiveResponses ?? []);
+          if (adaptiveResponses.length > 0) saved.adaptiveResponses = adaptiveResponses;
           store.put({ ...data, checkIns: [...data.checkIns, saved] }, 'data');
         };
         transaction.oncomplete = () => { db.close(); resolve(saved); };
@@ -73,7 +83,7 @@ function createWebRepository(): SessionRepository {
         const request = store.get('data');
         let updated: ReportRecord;
         request.onsuccess = () => {
-          const data: StoredSession = request.result ?? emptySession();
+          const data: StoredSession = normalizeStoredSession(request.result);
           const current = data.reports.find((report) => report.id === reportId);
           if (!current) {
             transaction.abort();
@@ -98,7 +108,7 @@ function createWebRepository(): SessionRepository {
         let result!: ReportRecord;
         const request = store.get('data');
         request.onsuccess = () => {
-          const data: StoredSession = request.result ?? emptySession();
+          const data: StoredSession = normalizeStoredSession(request.result);
           const existing = data.reports.find((report) => report.checkInId === checkInId);
           if (existing) {
             result = existing;
@@ -125,6 +135,44 @@ function createWebRepository(): SessionRepository {
         transaction.onerror = transaction.onabort = () => {
           db.close();
           reject(transaction.error ?? new Error('Could not queue report offline.'));
+        };
+      });
+    },
+    async recordEngagement(kind: EngagementEventKind, recordedAt: string) {
+      const db = await database();
+      return new Promise<EngagementState>((resolve, reject) => {
+        const transaction = db.transaction('session', 'readwrite');
+        const store = transaction.objectStore('session');
+        let result!: EngagementState;
+        const request = store.get('data');
+        request.onsuccess = () => {
+          const data = normalizeStoredSession(request.result);
+          result = addEngagementEvent(data.engagement, kind, recordedAt);
+          if (result !== data.engagement) store.put({ ...data, engagement: result }, 'data');
+        };
+        transaction.oncomplete = () => { db.close(); resolve(result); };
+        transaction.onerror = transaction.onabort = () => {
+          db.close();
+          reject(transaction.error ?? new Error('Could not save engagement progress.'));
+        };
+      });
+    },
+    async setJourneyVisible(visible: boolean) {
+      const db = await database();
+      return new Promise<EngagementState>((resolve, reject) => {
+        const transaction = db.transaction('session', 'readwrite');
+        const store = transaction.objectStore('session');
+        let result!: EngagementState;
+        const request = store.get('data');
+        request.onsuccess = () => {
+          const data = normalizeStoredSession(request.result);
+          result = setJourneyVisibility(data.engagement, visible);
+          if (result !== data.engagement) store.put({ ...data, engagement: result }, 'data');
+        };
+        transaction.oncomplete = () => { db.close(); resolve(result); };
+        transaction.onerror = transaction.onabort = () => {
+          db.close();
+          reject(transaction.error ?? new Error('Could not save journey preference.'));
         };
       });
     },

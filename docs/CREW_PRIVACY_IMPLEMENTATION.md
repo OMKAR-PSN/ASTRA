@@ -80,7 +80,7 @@ Every surface that can be mistaken for an access-control system is labelled **"D
 ## 8. What this Feature does not secure
 
 - No authentication, passwords, PINs, biometrics, device pairing or role-based access. The local role/crew selector is a demonstration control, not an authorization system.
-- No encryption at rest or in transit beyond the local HTTP receiver used by the existing report flow.
+- No application encryption at rest. The local HTTP receiver does not encrypt transport; HTTPS is required for encrypted transport.
 - No server-side access control; a client-side DOM check is not backend authorization.
 - The fictional crew QR identifies a demo fixture. It is not proof of identity, a credential or a permission grant.
 - The Privacy Shield hides the screen from casual view. It does not lock the device, block screenshots, stop another process or hide data from storage inspection.
@@ -105,7 +105,7 @@ Every surface that can be mistaken for an access-control system is labelled **"D
 ## 10. Verification
 
 - `npm run typecheck` and `npm run lint` pass.
-- Unit suites: privacy 28, crew 7, guided 21, assessment 25, replay 20, engagement 22, symptoms 23, knowledge 20, voice 18, adaptive 29 and receiver 1 pass (215 total across 11 suites).
+- Unit suites: privacy 28, crew 7, guided 21, assessment 25, replay 20, engagement 22, symptoms 23, knowledge 20, voice 18, adaptive 29 and receiver 1 pass (214 total across 11 suites).
 - Production export `npm run build:web` succeeded and serves from `dist/web` on `http://127.0.0.1:8083`.
 - Browser harness `node dist/verify-privacy.mjs` (Playwright/Edge): **74/74 checks passed with no console errors**, at 1440×900 and 390×844. Coverage:
   - Privacy Center sections A–E, local and demo session labels, owner "not verified", no horizontal overflow.

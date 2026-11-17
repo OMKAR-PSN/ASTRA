@@ -1,10 +1,11 @@
-import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { colors, fonts, spacing } from '@/constants/theme';
 
+import { createSessionTaskScope } from '@/lib/sessionTaskScope';
 import { receiverUrl, submitReport } from '@/lib/receiver';
 import type { EngagementEventKind } from '@/lib/engagement';
 import type { SessionRepository } from '@/lib/sessionRepositoryContract';
@@ -35,11 +36,15 @@ export function SessionProvider({ children, repository = sessionRepository, stor
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
 
+  const scope = useMemo(() => createSessionTaskScope(), [repository]);
+  const sending = useMemo(() => new Set<string>(), [repository]);
+
   // Never expose the previous session's records while a new repository is loading.
   const viewState: SessionState = loadedRepository === repository ? state : initialSessionState;
 
   useEffect(() => {
     let active = true;
+    scope.activate();
     setState(initialSessionState);
     setLoadedRepository(repository);
     setLoading(true);
@@ -54,21 +59,25 @@ export function SessionProvider({ children, repository = sessionRepository, stor
     }).finally(() => {
       if (active) setLoading(false);
     });
-    return () => { active = false; };
-  }, [loadAttempt, repository]);
+    return () => { active = false; scope.invalidate(); };
+  }, [loadAttempt, repository, scope]);
 
   const saveCheckIn = useCallback(async (draft: CheckInDraft) => {
+    const isCurrent = scope.capture();
     const checkIn = await repository.saveCheckIn(draft, new Date().toISOString());
+    if (!isCurrent()) throw new Error('Session changed while saving.');
     setState((current) => ({ ...current, checkIns: [...current.checkIns, checkIn] }));
     return checkIn;
-  }, [repository]);
+  }, [repository, scope]);
 
   const confirmReport = useCallback(async (checkInId: string) => {
+    const isCurrent = scope.capture();
     const report = await repository.confirmReport(checkInId, new Date().toISOString());
+    if (!isCurrent()) return;
     setState((current) => current.reports.some((item) => item.id === report.id)
       ? current
       : { ...current, reports: [...current.reports, report] });
-  }, [repository]);
+  }, [repository, scope]);
 
   const setLinkAvailable = useCallback((available: boolean) => {
     setState((current) => ({ ...current, linkAvailable: available }));
@@ -76,24 +85,29 @@ export function SessionProvider({ children, repository = sessionRepository, stor
 
   const recordEngagement = useCallback(async (kind: EngagementEventKind) => {
     if (!viewState.engagement.journeyVisible || viewState.engagement.events.some((event) => event.kind === kind)) return;
+    const isCurrent = scope.capture();
     const engagement = await repository.recordEngagement(kind, new Date().toISOString());
-    setState((current) => ({ ...current, engagement }));
-  }, [viewState.engagement, repository]);
+    if (isCurrent()) setState((current) => ({ ...current, engagement }));
+  }, [viewState.engagement, repository, scope]);
 
   const setJourneyVisible = useCallback(async (visible: boolean) => {
+    const isCurrent = scope.capture();
     const engagement = await repository.setJourneyVisible(visible);
-    setState((current) => ({ ...current, engagement }));
-  }, [repository]);
+    if (isCurrent()) setState((current) => ({ ...current, engagement }));
+  }, [repository, scope]);
 
-  const sending = useRef(new Set<string>());
   const retryReport = useCallback(async (reportId: string) => {
+    const isCurrent = scope.capture();
     const report = viewState.reports.find((item) => item.id === reportId);
-    if (!report || report.status === 'acknowledged' || sending.current.has(reportId)) return;
+    if (!report || report.status === 'acknowledged' || sending.has(reportId)) return;
 
-    const setReport = (updated: ReportRecord) => setState((current) => ({
-      ...current,
-      reports: current.reports.map((item) => item.id === reportId ? updated : item),
-    }));
+    const setReport = (updated: ReportRecord) => {
+      if (!isCurrent()) return;
+      setState((current) => ({
+        ...current,
+        reports: current.reports.map((item) => item.id === reportId ? updated : item),
+      }));
+    };
     if (!viewState.linkAvailable || !receiverUrl) {
       setReport({
         ...report,
@@ -102,7 +116,7 @@ export function SessionProvider({ children, repository = sessionRepository, stor
       return;
     }
 
-    sending.current.add(reportId);
+    sending.add(reportId);
     setReport({ ...report, status: 'sending', retryNote: null });
     try {
       let receipt;
@@ -120,9 +134,9 @@ export function SessionProvider({ children, repository = sessionRepository, stor
     } catch {
       setReport({ ...report, retryNote: 'Could not save the delivery result. Retry to recover the receiver receipt.' });
     } finally {
-      sending.current.delete(reportId);
+      sending.delete(reportId);
     }
-  }, [viewState.linkAvailable, viewState.reports, repository]);
+  }, [viewState.linkAvailable, viewState.reports, repository, scope, sending]);
 
   const value = useMemo<SessionContextValue>(() => ({
     ...viewState,
@@ -138,7 +152,7 @@ export function SessionProvider({ children, repository = sessionRepository, stor
     setJourneyVisible,
   }), [viewState, ready, saveCheckIn, confirmReport, setLinkAvailable, retryReport, recordEngagement, setJourneyVisible, storageLabel]);
 
-  if (!ready) {
+  if (!ready || loadError) {
     return createElement(
       SafeAreaView,
       { style: recoveryStyles.root },

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Platform, StyleSheet, Text, TextInput, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Activity, ClipboardList, Database, FileText, Info, MessageCircleQuestionMark, Moon, ShieldCheck, Smile, Sparkles, Thermometer } from 'lucide-react-native';
@@ -71,6 +71,7 @@ export default function CheckInScreen() {
   const [errors, setErrors] = useState<DraftErrors>({});
   const [saved, setSaved] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  const saveLock = useRef(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const { setUnsavedDraft } = usePrivacyShield();
@@ -182,6 +183,7 @@ export default function CheckInScreen() {
   };
 
   const save = async () => {
+    if (saveLock.current) return;
     const draft = draftFromForm(formValues);
     const result = validateDraft(draft, texts);
     if (!result.ok) {
@@ -191,6 +193,7 @@ export default function CheckInScreen() {
     }
     setErrors({});
     setSaveError(null);
+    saveLock.current = true;
     setSaving(true);
     try {
       await saveCheckIn({
@@ -207,6 +210,7 @@ export default function CheckInScreen() {
       setSaved(false);
       setSaveError('Check-in could not be saved. Retry to confirm your changes.');
     } finally {
+      saveLock.current = false;
       setSaving(false);
     }
   };

@@ -76,7 +76,7 @@ The audit and source references are in UI_UX_AUDIT.md. The layout is NASA-inspir
 - The Privacy Shield is a full-viewport opaque cover (`#030B14`), not blur or glass. It stops voice guidance, makes the shell inert/aria-hidden, contains keyboard focus and offers a plain return action. It never changes saved data, and no "Unlock" or sign-in is implied.
 - Every privacy surface carries "Demonstration View — Not an Authenticated Access-Control System". The fictional QR remains a fixture identifier, not a credential. Local records remain unencrypted and without a crew owner.
 - Session isolation: demo records are memory-only; switching or exiting a demo resets both check-in forms, the assessment dialog and replay; unsaved drafts prompt before being discarded and are never persisted or included in any summary.
-- Verification: 28 privacy unit tests plus 187 prior tests (215 total across 11 suites) pass; typecheck and lint pass; the production web export passes; the 74-check desktop/mobile privacy harness passes with no console errors. Physical Expo Go, native confirm wording and real screen-reader announcements remain unverified. See CREW_PRIVACY_IMPLEMENTATION.md.
+- Verification: 28 privacy unit tests plus 186 prior tests (214 total across 11 suites) pass; typecheck and lint pass; the production web export passes; the 74-check desktop/mobile privacy harness passes with no console errors. Physical Expo Go, native confirm wording and real screen-reader announcements remain unverified. See CREW_PRIVACY_IMPLEMENTATION.md.
 
 ## Verification evidence
 
@@ -141,3 +141,10 @@ Crew web and mobile: record observations, review history/explanations, confirm r
 ## Stitch design integration
 
 Milestone 1 is implemented on feat/stitch-ui-redesign: shared tokens/surfaces/navigation/header and Mission Overview. See STITCH_INTEGRATION.md for the inspected export, preserved contracts, validation and remaining differences. The other screen-specific Stitch layouts are intentionally deferred.
+
+## Final integration audit — 17 November 2026
+
+- Corrected the original unit total to 214; added three session-scope regressions for 217 passing tests.
+- Fixed stale cross-session async UI updates, post-switch storage recovery, repeated detailed saves and encoded dynamic-route offline caching. Expo SDK 58 dependencies are aligned.
+- Web journey, cached offline reload, real simulated receiver receipt, delayed-receipt isolation and storage-failure Retry verified. TypeScript, lint, web export and Android/iOS bundle exports pass.
+- No physical native, audible-speech or real screen-reader verification. See FINAL_INTEGRATION_AUDIT.md for exact evidence, JUDGE_DEMO_RUNBOOK.md for timed scripts, FINAL_JUDGE_QA.md for defensible answers and KNOWN_LIMITATIONS.md for release gates.

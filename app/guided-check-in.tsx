@@ -45,7 +45,9 @@ import {
 import { parseNumericReadings, validateDraft, type DraftErrors } from '@/lib/validation';
 import { buildGuidedStepRequest } from '@/lib/voice/builders';
 import { usePresentation } from '@/state/PresentationSession';
+import { usePrivacyShield } from '@/state/PrivacyShieldProvider';
 import { useSession } from '@/state/SessionProvider';
+import { useSessionReset } from '@/state/useSessionReset';
 import { useVoiceGuidance } from '@/state/VoiceGuidanceProvider';
 import type { CheckIn } from '@/types/astra';
 
@@ -157,6 +159,28 @@ export default function GuidedCheckInScreen() {
   const saveLock = useRef(false);
   const dirty = formHasInput(values) || moodChoice !== null;
   const hasSaved = savedRecord !== null;
+  const { setUnsavedDraft } = usePrivacyShield();
+
+  const resetSessionState = useCallback(() => {
+    pendingAction.current = null;
+    setValues(emptyFormValues());
+    setMoodChoice(null);
+    setPhase('welcome');
+    setErrors({});
+    setStepMessage(null);
+    setSaveError(null);
+    setSavedRecord(null);
+    setReviewNow(new Date().toISOString());
+    setExitOpen(false);
+    setBodyMapOpen(false);
+    setWordListHint(false);
+  }, []);
+  useSessionReset(resetSessionState);
+
+  useEffect(() => {
+    setUnsavedDraft(dirty && !hasSaved);
+  }, [dirty, hasSaved, setUnsavedDraft]);
+  useEffect(() => () => setUnsavedDraft(false), [setUnsavedDraft]);
 
   useEffect(() => {
     return navigation.addListener('beforeRemove', (event) => {

@@ -137,6 +137,14 @@ export default function IdentifyCrewScreen() {
     return () => { active = false; subscription.remove(); };
   }, []);
 
+  // Reaching the identity step ends the previous demo session so its draft cannot reappear.
+  const exitedPreviousSession = useRef(false);
+  useEffect(() => {
+    if (exitedPreviousSession.current) return;
+    exitedPreviousSession.current = true;
+    if (presentation.active) presentation.exit();
+  }, [presentation]);
+
   useEffect(() => {
     if (phase !== 'reading' || reduceMotion) {
       pulse.setValue(0);

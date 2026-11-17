@@ -5,12 +5,26 @@ import { ScanLine, X } from 'lucide-react-native';
 import { colors, fonts, radius } from '@/constants/theme';
 import { demoCrewIdentity } from '@/fixtures/demoCrew';
 import { usePresentation } from '@/state/PresentationSession';
+import { usePrivacyShield } from '@/state/PrivacyShieldProvider';
 
 export function DemoModeBanner() {
   const { active, activeCrewId, exit } = usePresentation();
+  const shield = usePrivacyShield();
   const router = useRouter();
   if (!active) return null;
   const crewId = activeCrewId === demoCrewIdentity.crewId ? demoCrewIdentity.crewId : activeCrewId;
+  const leaveDemo = async () => {
+    const proceed = await shield.confirmDiscardUnsaved(
+      'Leaving the demo session discards its session-only records and clears any unsaved check-in values in this tab. Continue?',
+    );
+    if (proceed) exit();
+  };
+  const switchCrew = async () => {
+    const proceed = await shield.confirmDiscardUnsaved(
+      'Switching the fictional crew clears unsaved check-in values in this tab. Saved device records are not changed. Continue?',
+    );
+    if (proceed) router.navigate('/identify');
+  };
 
   return (
     <View style={styles.wrap} accessibilityRole="status" accessibilityLabel="Fictional crew synthetic demo data is active">
@@ -23,7 +37,7 @@ export function DemoModeBanner() {
         <Pressable
           accessibilityRole="link"
           accessibilityLabel="Identify a crew member again"
-          onPress={() => router.navigate('/identify')}
+          onPress={() => { void switchCrew(); }}
           style={({ hovered }: { hovered?: boolean }) => [styles.action, hovered && styles.actionHover]}
         >
           <ScanLine size={12} color={colors.primary[300]} strokeWidth={2.2} />
@@ -32,7 +46,7 @@ export function DemoModeBanner() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Exit demo crew session"
-          onPress={exit}
+          onPress={() => { void leaveDemo(); }}
           style={({ hovered }: { hovered?: boolean }) => [styles.exit, hovered && styles.actionHover]}
         >
           <X size={13} color={colors.slate[300]} strokeWidth={2.2} />

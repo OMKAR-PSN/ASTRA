@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Clock3, Database, Orbit, Radio, Rocket, ScanLine } from 'lucide-react-native';
+import { Clock3, Database, Orbit, Radio, Rocket, ScanLine, ShieldCheck } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View, type ViewStyle, Platform } from 'react-native';
 
@@ -9,6 +9,7 @@ import { SyntheticBanner } from '@/components/SyntheticBanner';
 import { colors, fonts, stitch } from '@/constants/theme';
 import { crewProfile } from '@/fixtures/crew';
 import { usePresentation } from '@/state/PresentationSession';
+import { usePrivacyShield } from '@/state/PrivacyShieldProvider';
 import { useSession } from '@/state/SessionProvider';
 
 const initials = crewProfile.name.split(' ').map((part) => part[0]).slice(0, 2).join('');
@@ -24,8 +25,26 @@ function StatusChip({ Icon, label, dot }: { Icon?: LucideIcon; label: string; do
 export function MissionHeader({ desktop }: { desktop: boolean }) {
   const router = useRouter();
   const presentation = usePresentation();
+  const shield = usePrivacyShield();
   const { latestCheckIn, linkAvailable } = useSession();
   const [expanded, setExpanded] = useState(false);
+  const exitDemo = async () => {
+    const proceed = await shield.confirmDiscardUnsaved(
+      'Leaving the demo session discards its session-only records and clears any unsaved check-in values in this tab. Continue?',
+    );
+    if (!proceed) return;
+    presentation.exit();
+    router.replace('/');
+  };
+  const openIdentity = async () => {
+    if (presentation.active) {
+      const proceed = await shield.confirmDiscardUnsaved(
+        'Opening the identity step ends the current demo session and clears unsaved check-in values in this tab. Saved device records are not changed. Continue?',
+      );
+      if (!proceed) return;
+    }
+    router.navigate('/identify');
+  };
   const [time, setTime] = useState(() => new Date());
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 60000);
@@ -54,11 +73,21 @@ export function MissionHeader({ desktop }: { desktop: boolean }) {
             <View style={styles.divider} />
             <StatusChip Icon={Database} label={recordsLabel} dot={colors.success[400]} />
             <StatusChip Icon={Radio} label={linkAvailable ? 'Simulated connection' : 'Simulated link off'} dot={linkAvailable ? colors.success[400] : colors.accent[400]} />
-            {presentation.active ? <Pressable accessibilityRole="button" onPress={presentation.exit} style={styles.exit}><Text style={styles.exitLabel}>Exit demo</Text></Pressable> : null}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Activate Privacy Shield"
+              accessibilityHint="Hides personal health details on this screen. It is a visual mode, not a lock."
+              onPress={shield.activate}
+              style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [styles.privacy, (hovered || pressed) && styles.identityHover]}
+            >
+              <ShieldCheck size={14} color={colors.primary[300]} strokeWidth={2.2} />
+              <Text style={styles.privacyLabel}>Privacy</Text>
+            </Pressable>
+            {presentation.active ? <Pressable accessibilityRole="button" onPress={() => { void exitDemo(); }} style={styles.exit}><Text style={styles.exitLabel}>Exit demo</Text></Pressable> : null}
             <Pressable
               accessibilityRole="link"
               accessibilityLabel="Identify crew member"
-              onPress={() => router.navigate('/identify')}
+              onPress={() => { void openIdentity(); }}
               style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [styles.identity, (hovered || pressed) && styles.identityHover]}
             >
               <View style={styles.avatar}><Text style={styles.avatarText}>{initials}</Text></View>
@@ -77,14 +106,25 @@ export function MissionHeader({ desktop }: { desktop: boolean }) {
               <View style={styles.mobileBrandIcon}><Orbit size={17} color={colors.primary[300]} strokeWidth={2.1} /></View>
               <Text style={styles.mobileBrandText}>ASTRA CARE</Text>
             </View>
-            <Pressable
-              accessibilityRole="link"
-              accessibilityLabel="Identify crew member"
-              onPress={() => router.navigate('/identify')}
-              style={({ pressed }: { pressed: boolean }) => [styles.avatar, pressed && styles.avatarPressed]}
-            >
-              <Text style={styles.avatarText}>{initials}</Text>
-            </Pressable>
+            <View style={styles.mobileTopActions}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Activate Privacy Shield"
+                accessibilityHint="Hides personal health details on this screen."
+                onPress={shield.activate}
+                style={({ pressed }: { pressed: boolean }) => [styles.privacyIcon, pressed && styles.avatarPressed]}
+              >
+                <ShieldCheck size={16} color={colors.primary[300]} strokeWidth={2.2} />
+              </Pressable>
+              <Pressable
+                accessibilityRole="link"
+                accessibilityLabel="Identify crew member"
+                onPress={() => { void openIdentity(); }}
+                style={({ pressed }: { pressed: boolean }) => [styles.avatar, pressed && styles.avatarPressed]}
+              >
+                <Text style={styles.avatarText}>{initials}</Text>
+              </Pressable>
+            </View>
           </View>
           <View style={styles.mobileRow}>
             <View style={styles.mobileMissionWrap}>
@@ -100,13 +140,19 @@ export function MissionHeader({ desktop }: { desktop: boolean }) {
       {expanded && !desktop ? <View style={styles.expanded}>
         <Text style={styles.expandedText}>{time.toISOString().slice(11, 16)} UTC · {recordsLabel} · {linkAvailable ? 'Simulated link available' : 'Simulated link unavailable'}</Text>
         <Text style={styles.expandedText}>{crewProfile.missionName} · {crewProfile.name} · {crewProfile.role} · Fictional crew</Text>
-        <Pressable accessibilityRole="link" accessibilityLabel="Identify crew member" onPress={() => router.navigate('/identify')} style={styles.expand}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Activate Privacy Shield" accessibilityHint="Hides personal health details on this screen." onPress={shield.activate} style={styles.expand}>
+          <Text style={styles.expandLabel}>Privacy Shield · hide health details</Text>
+        </Pressable>
+        <Pressable accessibilityRole="link" accessibilityLabel="Privacy and Crew Access" onPress={() => router.navigate('/privacy')} style={styles.expand}>
+          <Text style={styles.expandLabel}>Privacy &amp; Crew Access</Text>
+        </Pressable>
+        <Pressable accessibilityRole="link" accessibilityLabel="Identify crew member" onPress={() => { void openIdentity(); }} style={styles.expand}>
           <Text style={styles.expandLabel}>Identify crew member</Text>
         </Pressable>
         <Pressable accessibilityRole="link" accessibilityLabel="Crew Knowledge Hub" onPress={() => router.navigate('/knowledge')} style={styles.expand}>
           <Text style={styles.expandLabel}>Crew Knowledge Hub · offline</Text>
         </Pressable>
-        {presentation.active ? <Pressable accessibilityRole="button" onPress={presentation.exit} style={styles.expand}><Text style={styles.exitLabel}>Exit presentation demo</Text></Pressable> : null}
+        {presentation.active ? <Pressable accessibilityRole="button" onPress={() => { void exitDemo(); }} style={styles.expand}><Text style={styles.exitLabel}>Exit presentation demo</Text></Pressable> : null}
       </View> : null}
     </Surface>
   );
@@ -186,6 +232,29 @@ const styles = StyleSheet.create({
   role: { fontFamily: fonts.semibold, fontSize: 7.5, lineHeight: 11, letterSpacing: 0.6, textTransform: 'uppercase', color: colors.primary[400] },
   exit: { minHeight: 30, justifyContent: 'center', paddingHorizontal: 4 },
   exitLabel: { fontFamily: fonts.semibold, fontSize: 11, lineHeight: 16, color: colors.primary[300] },
+  privacy: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minHeight: 30,
+    paddingHorizontal: 9,
+    borderRadius: 11,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 214, 198, 0.28)',
+    backgroundColor: 'rgba(0, 214, 198, 0.08)',
+  },
+  privacyLabel: { fontFamily: fonts.semibold, fontSize: 11, lineHeight: 16, color: colors.primary[300] },
+  mobileTopActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  privacyIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 11,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 214, 198, 0.28)',
+    backgroundColor: 'rgba(0, 214, 198, 0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   mobileTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   mobileBrand: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   mobileBrandIcon: {

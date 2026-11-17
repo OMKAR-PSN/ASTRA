@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Platform, StyleSheet, Text, TextInput, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Activity, ClipboardList, Database, FileText, Info, MessageCircleQuestionMark, Moon, ShieldCheck, Smile, Sparkles, Thermometer } from 'lucide-react-native';
@@ -18,7 +18,7 @@ import { SymptomSummary } from '@/components/SymptomSummary';
 import { colors, fonts, layout, radius, stitch, type as typography } from '@/constants/theme';
 import { demoReadings, symptomOptions } from '@/fixtures/checkInOptions';
 import { crewProfile } from '@/fixtures/crew';
-import { draftFromForm, emptyNumericTexts, emptySubjective, textsFrom, type CheckInFormValues, type NumericKey, type NumericTexts } from '@/lib/checkInForm';
+import { draftFromForm, emptyNumericTexts, emptySubjective, formHasInput, textsFrom, type CheckInFormValues, type NumericKey, type NumericTexts } from '@/lib/checkInForm';
 import { buildAdaptiveContext, evaluateAdaptiveQuestions, adaptiveContextLines } from '@/lib/adaptiveQuestions';
 import { DIFFERENCE_THRESHOLD_PERCENT } from '@/lib/comparison';
 import { deriveRoutineProgress, evaluateMilestones } from '@/lib/engagement';
@@ -26,6 +26,8 @@ import { formatTimestamp } from '@/lib/format';
 import { setFormHandoff, takeFormHandoff } from '@/lib/formHandoff';
 import { validateDraft, type DraftErrors } from '@/lib/validation';
 import { useSession } from '@/state/SessionProvider';
+import { usePrivacyShield } from '@/state/PrivacyShieldProvider';
+import { useSessionReset } from '@/state/useSessionReset';
 import type { AdaptiveResponse, Readings, SymptomEntry, SymptomStatus } from '@/types/astra';
 
 const guidance = [
@@ -71,6 +73,26 @@ export default function CheckInScreen() {
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const { setUnsavedDraft } = usePrivacyShield();
+
+  const resetSessionState = useCallback(() => {
+    setTexts({ ...emptyNumericTexts });
+    setScales({ ...emptySubjective });
+    setSymptoms([]);
+    setSymptomEntries([]);
+    setSymptomStatus('not-answered');
+    setBodyMapOpen(false);
+    setActivityNote('');
+    setAdaptiveResponses([]);
+    setAdaptiveSkipped([]);
+    setContextOpen(false);
+    setErrors({});
+    setSaved(false);
+    setSavedAt(null);
+    setSaving(false);
+    setSaveError(null);
+  }, []);
+  useSessionReset(resetSessionState);
 
   const formValues: CheckInFormValues = {
     texts,
@@ -82,6 +104,11 @@ export default function CheckInScreen() {
     adaptiveResponses,
     adaptiveSkipped,
   };
+  const hasUnsavedInput = !saved && formHasInput(formValues);
+  useEffect(() => {
+    setUnsavedDraft(hasUnsavedInput);
+  }, [hasUnsavedInput, setUnsavedDraft]);
+  useEffect(() => () => setUnsavedDraft(false), [setUnsavedDraft]);
   const adaptiveAvailable = evaluateAdaptiveQuestions(
     buildAdaptiveContext(formValues),
     { limit: Number.POSITIVE_INFINITY },

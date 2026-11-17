@@ -22,6 +22,7 @@ import { symptomLines } from '@/lib/symptoms';
 import { buildAssessmentOverviewRequest } from '@/lib/voice/builders';
 import { usePresentation } from '@/state/PresentationSession';
 import { useSession } from '@/state/SessionProvider';
+import { useSessionReset } from '@/state/useSessionReset';
 
 function CardHead({ Icon, title, meta }: { Icon: LucideIcon; title: string; meta?: string }) {
   return (
@@ -67,6 +68,7 @@ export default function AssessmentScreen() {
   const { active: demoActive } = usePresentation();
   const [observationOpen, setObservationOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  useSessionReset(() => setObservationOpen(false));
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 60000);
     return () => clearInterval(timer);

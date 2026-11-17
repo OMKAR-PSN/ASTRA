@@ -1,4 +1,4 @@
-import { BookOpen, Database, Info, Orbit, ScanLine } from 'lucide-react-native';
+import { BookOpen, Database, Info, Orbit, ScanLine, ShieldCheck } from 'lucide-react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View, type ViewStyle, Platform } from 'react-native';
 
@@ -6,13 +6,26 @@ import { Surface } from '@/components/Surface';
 import { colors, fonts, layout, radius, spacing, stitch } from '@/constants/theme';
 import { crewProfile } from '@/fixtures/crew';
 import { navItems } from '@/constants/navigation';
+import { usePresentation } from '@/state/PresentationSession';
+import { usePrivacyShield } from '@/state/PrivacyShieldProvider';
 import { useSession } from '@/state/SessionProvider';
 
 export function SideRail() {
   const { checkIns, reports } = useSession();
+  const presentation = usePresentation();
+  const shield = usePrivacyShield();
   const pathname = usePathname();
   const router = useRouter();
   const acknowledged = reports.filter((report) => report.status === 'acknowledged').length;
+  const openIdentify = async () => {
+    if (presentation.active) {
+      const proceed = await shield.confirmDiscardUnsaved(
+        'Opening the identity step ends the current demo session and clears unsaved check-in values in this tab. Saved device records are not changed. Continue?',
+      );
+      if (!proceed) return;
+    }
+    router.navigate('/identify');
+  };
 
   return (
     <Surface variant="glass" padded={false} style={styles.rail}>
@@ -67,9 +80,26 @@ export function SideRail() {
 
       <Pressable
         accessibilityRole="link"
+        accessibilityLabel="Privacy and Crew Access"
+        accessibilityHint="Opens session privacy information and the visual Privacy Shield."
+        accessibilityState={{ selected: pathname === '/privacy' || pathname === '/personal' || pathname === '/crew-summary' }}
+        onPress={() => router.navigate('/privacy')}
+        style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
+          styles.item,
+          styles.privacyItem,
+          (pathname === '/privacy' || pathname === '/personal' || pathname === '/crew-summary') && styles.itemActive,
+          (hovered || pressed) && !(pathname === '/privacy' || pathname === '/personal' || pathname === '/crew-summary') && styles.itemHover,
+        ]}
+      >
+        <ShieldCheck size={18} color={pathname === '/privacy' || pathname === '/personal' || pathname === '/crew-summary' ? colors.primary.ink : colors.slate[300]} strokeWidth={2.1} />
+        <Text style={[styles.itemLabel, (pathname === '/privacy' || pathname === '/personal' || pathname === '/crew-summary') && styles.itemLabelActive]}>Privacy &amp; Crew Access</Text>
+      </Pressable>
+
+      <Pressable
+        accessibilityRole="link"
         accessibilityLabel="Identify crew member"
         accessibilityState={{ selected: pathname === '/identify' }}
-        onPress={() => router.navigate('/identify')}
+        onPress={() => { void openIdentify(); }}
         style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
           styles.identify,
           pathname === '/identify' && styles.identifyActive,
@@ -210,6 +240,7 @@ const styles = StyleSheet.create({
     color: colors.primary.ink,
   },
   knowledgeItem: { borderColor: 'rgba(0, 214, 198, 0.16)', marginTop: 2 },
+  privacyItem: { borderColor: 'rgba(242, 192, 120, 0.16)', marginTop: 2 },
   knowledgeMeta: { fontFamily: fonts.mono, fontSize: 7.5, lineHeight: 11, letterSpacing: 0.5, color: colors.primary[300], marginLeft: 'auto' },
   knowledgeMetaActive: { color: colors.primary.ink },
   footer: { marginTop: 'auto', gap: 9, paddingHorizontal: 4, paddingTop: 16 },

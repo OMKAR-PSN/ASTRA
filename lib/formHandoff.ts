@@ -12,3 +12,8 @@ export function takeFormHandoff(): CheckInFormValues | null {
   pending = null;
   return values;
 }
+
+/** Drops an unconsumed handoff so a crew switch can never surface another session's draft. */
+export function clearFormHandoff() {
+  pending = null;
+}

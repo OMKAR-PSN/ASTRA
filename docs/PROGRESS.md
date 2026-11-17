@@ -68,6 +68,16 @@ Target repository: OMKAR-PSN/ASTRA, main branch. Source history originates from 
 
 The audit and source references are in UI_UX_AUDIT.md. The layout is NASA-inspired, without a certification claim.
 
+## Crew privacy, health-information boundaries and Privacy Shield (Feature 09)
+
+- `/privacy` ("Privacy & Crew Access") has five sections: active session, visibility controls, local data information, privacy explanation and session controls. It is reachable from the desktop side rail, mobile header details and the shield, and is not a sixth bottom tab.
+- `/personal` is an entry view for the active session only: identity, record availability, counts, last recorded time, storage description and links to the existing health screens. It does not duplicate measurements or assessment content.
+- `/crew-summary` is a restricted projection built from `Pick<CheckIn, 'id' | 'recordedAt'>` and `Pick<ReportRecord, 'id' | 'status' | 'receipt'>`. It shows only workflow presence (check-in count, last recorded time, report totals, delivery state and last acknowledgement). Measurements, symptoms, body-map detail, notes, adaptive answers, baseline/assessment content, snapshots and any readiness score are never passed to it.
+- The Privacy Shield is a full-viewport opaque cover (`#030B14`), not blur or glass. It stops voice guidance, makes the shell inert/aria-hidden, contains keyboard focus and offers a plain return action. It never changes saved data, and no "Unlock" or sign-in is implied.
+- Every privacy surface carries "Demonstration View — Not an Authenticated Access-Control System". The fictional QR remains a fixture identifier, not a credential. Local records remain unencrypted and without a crew owner.
+- Session isolation: demo records are memory-only; switching or exiting a demo resets both check-in forms, the assessment dialog and replay; unsaved drafts prompt before being discarded and are never persisted or included in any summary.
+- Verification: 28 privacy unit tests plus 187 prior tests (215 total across 11 suites) pass; typecheck and lint pass; the production web export passes; the 74-check desktop/mobile privacy harness passes with no console errors. Physical Expo Go, native confirm wording and real screen-reader announcements remain unverified. See CREW_PRIVACY_IMPLEMENTATION.md.
+
 ## Verification evidence
 
 - TypeScript and Expo lint passed after integration.
@@ -124,6 +134,7 @@ Crew web and mobile: record observations, review history/explanations, confirm r
 - Persistence/delivery: state/SessionProvider.tsx, lib/sessionRepository.web.ts, lib/sessionRepository.native.ts, lib/sessionRepositoryContract.ts, lib/receiver.ts, lib/reportProtocol.ts, ground-receiver/.
 - Knowledge Hub: app/knowledge.tsx, app/knowledge/[cardId].tsx, components/KnowledgeLink.tsx, KnowledgeCardTile.tsx, KnowledgeDiagram.tsx, lib/knowledge/.
 - Voice guidance: lib/voice/, state/VoiceGuidanceProvider.tsx, components/VoiceControls.tsx, app/voice-settings.tsx.
+- Privacy and session boundaries: lib/privacy.ts, state/PrivacyShieldProvider.tsx, state/PresentationSession.tsx, state/useSessionReset.ts, components/PrivacyShield.tsx, components/DemoModeBanner.tsx, app/privacy.tsx, app/personal.tsx, app/crew-summary.tsx.
 - Supporting logic/build: lib/format.ts, lib/comparison.ts, lib/readingTiles.ts, lib/checkInStreak.ts, scripts/build-web-cache.mjs, package.json, app.json.
 - Documentation: README.md, docs/decisions.md, docs/UI_UX_AUDIT.md, docs/KNOWLEDGE_CONTENT_SOURCES.md, docs/KNOWLEDGE_CONTENT_VERSIONING.md, docs/VOICE_GUIDANCE_IMPLEMENTATION.md, docs/ADAPTIVE_QUESTIONS_IMPLEMENTATION.md and this progress report.
 

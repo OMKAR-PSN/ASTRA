@@ -29,13 +29,19 @@ const SessionContext = createContext<SessionContextValue | null>(null);
 
 export function SessionProvider({ children, repository = sessionRepository, storageLabel = storageDescription }: { children: ReactNode; repository?: SessionRepository; storageLabel?: string }) {
   const [state, setState] = useState<SessionState>(initialSessionState);
+  const [loadedRepository, setLoadedRepository] = useState<SessionRepository | null>(null);
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
 
+  // Never expose the previous session's records while a new repository is loading.
+  const viewState: SessionState = loadedRepository === repository ? state : initialSessionState;
+
   useEffect(() => {
     let active = true;
+    setState(initialSessionState);
+    setLoadedRepository(repository);
     setLoading(true);
     setLoadError(null);
     repository.load().then((saved) => {
@@ -69,10 +75,10 @@ export function SessionProvider({ children, repository = sessionRepository, stor
   }, []);
 
   const recordEngagement = useCallback(async (kind: EngagementEventKind) => {
-    if (!state.engagement.journeyVisible || state.engagement.events.some((event) => event.kind === kind)) return;
+    if (!viewState.engagement.journeyVisible || viewState.engagement.events.some((event) => event.kind === kind)) return;
     const engagement = await repository.recordEngagement(kind, new Date().toISOString());
     setState((current) => ({ ...current, engagement }));
-  }, [state.engagement, repository]);
+  }, [viewState.engagement, repository]);
 
   const setJourneyVisible = useCallback(async (visible: boolean) => {
     const engagement = await repository.setJourneyVisible(visible);
@@ -81,17 +87,17 @@ export function SessionProvider({ children, repository = sessionRepository, stor
 
   const sending = useRef(new Set<string>());
   const retryReport = useCallback(async (reportId: string) => {
-    const report = state.reports.find((item) => item.id === reportId);
+    const report = viewState.reports.find((item) => item.id === reportId);
     if (!report || report.status === 'acknowledged' || sending.current.has(reportId)) return;
 
     const setReport = (updated: ReportRecord) => setState((current) => ({
       ...current,
       reports: current.reports.map((item) => item.id === reportId ? updated : item),
     }));
-    if (!state.linkAvailable || !receiverUrl) {
+    if (!viewState.linkAvailable || !receiverUrl) {
       setReport({
         ...report,
-        retryNote: state.linkAvailable ? 'Ground receiver URL is not configured.' : 'Simulated link is unavailable.',
+        retryNote: viewState.linkAvailable ? 'Ground receiver URL is not configured.' : 'Simulated link is unavailable.',
       });
       return;
     }
@@ -116,21 +122,21 @@ export function SessionProvider({ children, repository = sessionRepository, stor
     } finally {
       sending.current.delete(reportId);
     }
-  }, [state.linkAvailable, state.reports, repository]);
+  }, [viewState.linkAvailable, viewState.reports, repository]);
 
   const value = useMemo<SessionContextValue>(() => ({
-    ...state,
+    ...viewState,
     ready,
     storageDescription: storageLabel,
-    latestCheckIn: state.checkIns.at(-1) ?? null,
-    findReportForCheckIn: (checkInId) => state.reports.find((report) => report.checkInId === checkInId),
+    latestCheckIn: viewState.checkIns.at(-1) ?? null,
+    findReportForCheckIn: (checkInId) => viewState.reports.find((report) => report.checkInId === checkInId),
     saveCheckIn,
     confirmReport,
     setLinkAvailable,
     retryReport,
     recordEngagement,
     setJourneyVisible,
-  }), [state, ready, saveCheckIn, confirmReport, setLinkAvailable, retryReport, recordEngagement, setJourneyVisible, storageLabel]);
+  }), [viewState, ready, saveCheckIn, confirmReport, setLinkAvailable, retryReport, recordEngagement, setJourneyVisible, storageLabel]);
 
   if (!ready) {
     return createElement(

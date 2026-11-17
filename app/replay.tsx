@@ -98,8 +98,8 @@ function flightLabel(frame: ReplayFrame): string {
 }
 
 export default function MissionHealthReplayScreen() {
-  const { active: demoActive } = usePresentation();
-  return <ReplayContent key={demoActive ? 'demo' : 'local'} />;
+  const { sessionVersion } = usePresentation();
+  return <ReplayContent key={sessionVersion} />;
 }
 
 function ReplayContent() {

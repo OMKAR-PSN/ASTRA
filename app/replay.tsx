@@ -27,6 +27,7 @@ import { usePresentation } from '@/state/PresentationSession';
 import { useSession } from '@/state/SessionProvider';
 import { useVoiceGuidance } from '@/state/VoiceGuidanceProvider';
 import { buildReplaySummaryRequest } from '@/lib/voice/builders';
+import { adaptiveContextLines } from '@/lib/adaptiveQuestions';
 import { symptomLines } from '@/lib/symptoms';
 import type { Readings } from '@/types/astra';
 
@@ -279,6 +280,7 @@ function ReplayContent() {
   const progress = frames.length > 1 ? (activeIndex / (frames.length - 1)) * 100 : 100;
   const atFirst = activeIndex === 0;
   const atLast = activeIndex === frames.length - 1;
+  const recordedContext = adaptiveContextLines(activeFrame.checkIn.adaptiveResponses);
 
   return (
     <ScreenContainer title="Mission health replay" hideHeading scrollToTopKey={activeFrame.id}>
@@ -543,6 +545,20 @@ function ReplayContent() {
               </View>
             </View>
             <View style={styles.detailRow}><Text style={styles.detailName}>Activity note</Text><Text style={styles.detailValue}>{activeFrame.activityNote.trim() || 'Not provided'}</Text></View>
+            {recordedContext.length > 0 ? (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailName}>Recorded context</Text>
+                <View style={styles.detailValueStack}>
+                  {recordedContext.map((line) => (
+                    <View key={line.questionId} style={styles.contextLine}>
+                      <Text style={styles.contextQuestion}>{line.questionLabel}</Text>
+                      <Text style={styles.detailValue}>{line.answerLabel}</Text>
+                      <Text style={styles.contextTime}>{`${line.answeredAtText} · ${line.sourceLabel}`}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : null}
           </View>
           <View style={styles.provenanceRow}>
             <View style={styles.provenanceChip}>
@@ -706,6 +722,9 @@ const styles = StyleSheet.create({
   detailName: { flexShrink: 0, width: 108, ...typography.label, color: colors.slate[500] },
   detailValue: { flex: 1, fontFamily: fonts.mono, fontSize: 11, lineHeight: 16, color: colors.slate[200], textAlign: 'right' },
   detailValueStack: { flex: 1, gap: 2, alignItems: 'flex-end' },
+  contextLine: { gap: 1, alignItems: 'flex-end', paddingVertical: 3 },
+  contextQuestion: { fontFamily: fonts.mono, fontSize: 9.5, lineHeight: 14, color: colors.slate[400], textAlign: 'right' },
+  contextTime: { fontFamily: fonts.mono, fontSize: 9, lineHeight: 13, color: colors.slate[500], textAlign: 'right' },
   provenanceRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, paddingTop: 2 },
 
   eventList: { gap: 8 },

@@ -141,6 +141,14 @@ const copyCheckIn = (checkIn: CheckIn): CheckIn => ({
   ...(checkIn.symptomEntries
     ? { symptomEntries: checkIn.symptomEntries.map((entry) => ({ ...entry })) }
     : {}),
+  ...(checkIn.adaptiveResponses
+    ? {
+        adaptiveResponses: checkIn.adaptiveResponses.map((response) => ({
+          ...response,
+          answer: { optionIds: [...response.answer.optionIds], text: response.answer.text },
+        })),
+      }
+    : {}),
 });
 
 const finiteOrNull = (value: number | null | undefined): number | null =>

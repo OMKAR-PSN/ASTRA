@@ -1,6 +1,7 @@
 import { emptyReadings } from '@/fixtures/checkInOptions';
+import { activeAdaptiveQuestionIds, buildAdaptiveContext, sanitizeAdaptiveResponses } from '@/lib/adaptiveQuestions';
 import { normalizeSymptomStatus, sanitizeSymptomEntries } from '@/lib/symptoms';
-import type { CheckInDraft, Readings, SymptomEntry, SymptomStatus } from '@/types/astra';
+import type { AdaptiveResponse, CheckInDraft, Readings, SymptomEntry, SymptomStatus } from '@/types/astra';
 
 export type NumericKey = 'heartRateBpm' | 'systolicMmHg' | 'diastolicMmHg' | 'temperatureC' | 'sleepHours';
 export type NumericTexts = Record<NumericKey, string>;
@@ -13,6 +14,9 @@ export type CheckInFormValues = {
   symptomEntries: SymptomEntry[];
   symptomStatus: SymptomStatus;
   activityNote: string;
+  adaptiveResponses: AdaptiveResponse[];
+  /** Session-only UI state. Skipped questions are never saved as answers. */
+  adaptiveSkipped: string[];
 };
 
 export const emptyNumericTexts: NumericTexts = {
@@ -40,6 +44,8 @@ export const emptyFormValues = (): CheckInFormValues => ({
   symptomEntries: [],
   symptomStatus: 'not-answered',
   activityNote: '',
+  adaptiveResponses: [],
+  adaptiveSkipped: [],
 });
 
 export const copyFormValues = (values: CheckInFormValues): CheckInFormValues => ({
@@ -49,17 +55,26 @@ export const copyFormValues = (values: CheckInFormValues): CheckInFormValues => 
   symptomEntries: values.symptomEntries.map((entry) => ({ ...entry })),
   symptomStatus: values.symptomStatus,
   activityNote: values.activityNote,
+  adaptiveResponses: (values.adaptiveResponses ?? []).map((response) => ({
+    ...response,
+    answer: { optionIds: [...response.answer.optionIds], text: response.answer.text },
+  })),
+  adaptiveSkipped: [...(values.adaptiveSkipped ?? [])],
 });
 
 /** Builds the draft both check-in flows hand to the existing validation and save pipeline. */
 export const draftFromForm = (values: CheckInFormValues): CheckInDraft => {
   const symptomEntries = sanitizeSymptomEntries(values.symptomEntries);
+  const activeQuestions = activeAdaptiveQuestionIds(buildAdaptiveContext(values));
+  const adaptiveResponses = sanitizeAdaptiveResponses(values.adaptiveResponses ?? [])
+    .filter((response) => activeQuestions.has(response.questionId));
   return {
     readings: { ...emptyReadings, ...values.subjective },
     symptoms: [...values.symptoms],
     symptomEntries,
     symptomStatus: normalizeSymptomStatus(values.symptomStatus, values.symptoms, symptomEntries),
     activityNote: values.activityNote.trim(),
+    ...(adaptiveResponses.length > 0 ? { adaptiveResponses } : {}),
   };
 };
 
@@ -70,4 +85,5 @@ export const formHasInput = (values: CheckInFormValues): boolean =>
   || values.symptoms.length > 0
   || values.symptomEntries.length > 0
   || values.symptomStatus === 'none'
-  || values.activityNote.trim() !== '';
+  || values.activityNote.trim() !== ''
+  || (values.adaptiveResponses?.length ?? 0) > 0;

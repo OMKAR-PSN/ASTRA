@@ -16,6 +16,7 @@ import { Surface } from '@/components/Surface';
 import { VoiceControls } from '@/components/VoiceControls';
 import { colors, fonts, layout, radius, stitch, type as typography } from '@/constants/theme';
 import { buildAssessment } from '@/lib/assessment';
+import { adaptiveContextLines } from '@/lib/adaptiveQuestions';
 import { createReportSnapshot } from '@/lib/snapshot';
 import { symptomLines } from '@/lib/symptoms';
 import { buildAssessmentOverviewRequest } from '@/lib/voice/builders';
@@ -111,6 +112,7 @@ export default function AssessmentScreen() {
   const selfReportedCount = assessment.counts.noBaseline;
   const symptomDetailLines = symptomLines(latestCheckIn);
   const activityNote = latestCheckIn.activityNote?.trim() || 'Not provided';
+  const recordedContext = adaptiveContextLines(latestCheckIn.adaptiveResponses);
 
   return (
     <ScreenContainer title="Assessment" hideHeading scrollToTopKey={assessment.checkInId}>
@@ -249,6 +251,29 @@ export default function AssessmentScreen() {
           ) : null}
         </Surface>
       </View>
+
+      {recordedContext.length > 0 ? (
+        <Surface variant="glass" tone="panel" style={styles.panel}>
+          <CardHead Icon={Info} title="Additional self-reported context" meta="SELF-REPORTED · OPTIONAL" />
+          <Text style={styles.metaText}>
+            These optional answers document what the astronaut reported. They are shown separately from the calculated findings and do not change any reading, baseline comparison, the {assessment.thresholdPercent}% demonstration rule, or the review status.
+          </Text>
+          <View style={styles.contextList}>
+            {recordedContext.map((line) => (
+              <View key={line.questionId} style={styles.contextRow}>
+                <View style={styles.contextCopy}>
+                  <Text style={styles.contextQuestion}>{line.questionLabel}</Text>
+                  <Text style={styles.contextAnswer}>{line.answerLabel}</Text>
+                </View>
+                <Text style={styles.contextMeta}>{`${line.answeredAtText} · ${line.sourceLabel}`}</Text>
+              </View>
+            ))}
+          </View>
+          <View style={styles.termLinks}>
+            <KnowledgeLink cardId="symptom-reporting" label="How symptom reporting works" />
+          </View>
+        </Surface>
+      ) : null}
 
       <Surface variant="glass" tone="panel" style={styles.panel}>
         <CardHead Icon={Info} title="How this assessment works" meta="EXISTING ENGINE · DEMO RULE" />
@@ -390,6 +415,19 @@ const styles = StyleSheet.create({
   observationCellWide: { flexBasis: 260 },
   observationLabel: { ...typography.label, fontSize: 8, lineHeight: 12, letterSpacing: 0.5, color: colors.slate[500] },
   observationValue: { fontFamily: fonts.mono, fontSize: 11.5, lineHeight: 16, color: colors.slate[200] },
+  contextList: { gap: 7 },
+  contextRow: {
+    gap: 4,
+    padding: 10,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(40, 60, 80, 0.75)',
+    backgroundColor: 'rgba(3, 12, 22, 0.5)',
+  },
+  contextCopy: { gap: 2 },
+  contextQuestion: { ...typography.meta, color: colors.slate[300] },
+  contextAnswer: { fontFamily: fonts.semibold, fontSize: 13, lineHeight: 19, color: colors.offWhite },
+  contextMeta: { fontFamily: fonts.mono, fontSize: 9, lineHeight: 13, color: colors.slate[500] },
 
   cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' },
   cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },

@@ -1,4 +1,5 @@
 import type { Assessment, AssessmentFinding } from '@/lib/assessment';
+import type { AdaptiveQuestion } from '@/lib/adaptiveQuestions';
 import { guidedStepMeta, type GuidedStepId } from '@/lib/guidedCheckIn';
 import type { KnowledgeCard } from '@/lib/knowledge';
 import type { ReplayFrame } from '@/lib/replay';
@@ -32,6 +33,17 @@ export function buildGuidedStepRequest(step: GuidedStepId): VoiceRequest {
     sourceId: `guided-${step}`,
     label: meta.title,
     text: `${meta.title} ${STEP_INTRO_VOICE[step]} ${SIMPLE_STEP_INSTRUCTION[step]}`,
+  };
+}
+
+export function buildAdaptiveQuestionRequest(question: AdaptiveQuestion): VoiceRequest {
+  const options = question.type === 'short-text'
+    ? 'Answer with a short note in your own words, or skip this question.'
+    : `Choices: ${question.options.map((option) => option.label).join('. ')}.`;
+  return {
+    sourceId: `adaptive-${question.id}`,
+    label: 'Optional question',
+    text: `Optional question. ${question.prompt} ${question.reason} ${options} You can skip this question. Skipped is not recorded as No.`,
   };
 }
 

@@ -1,10 +1,11 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { Platform, StyleSheet, Text, TextInput, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { Activity, ClipboardList, Database, FileText, Info, Moon, ShieldCheck, Smile, Sparkles, Thermometer } from 'lucide-react-native';
+import { Activity, ClipboardList, Database, FileText, Info, MessageCircleQuestionMark, Moon, ShieldCheck, Smile, Sparkles, Thermometer } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 
 import { NumericField } from '@/components/NumericField';
+import { AdaptiveQuestions } from '@/components/AdaptiveQuestions';
 import { KnowledgeLink } from '@/components/KnowledgeLink';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { ScaleSelector } from '@/components/ScaleSelector';
@@ -17,14 +18,15 @@ import { SymptomSummary } from '@/components/SymptomSummary';
 import { colors, fonts, layout, radius, stitch, type as typography } from '@/constants/theme';
 import { demoReadings, symptomOptions } from '@/fixtures/checkInOptions';
 import { crewProfile } from '@/fixtures/crew';
-import { draftFromForm, emptyNumericTexts, emptySubjective, textsFrom, type NumericKey, type NumericTexts } from '@/lib/checkInForm';
+import { draftFromForm, emptyNumericTexts, emptySubjective, textsFrom, type CheckInFormValues, type NumericKey, type NumericTexts } from '@/lib/checkInForm';
+import { buildAdaptiveContext, evaluateAdaptiveQuestions, adaptiveContextLines } from '@/lib/adaptiveQuestions';
 import { DIFFERENCE_THRESHOLD_PERCENT } from '@/lib/comparison';
 import { deriveRoutineProgress, evaluateMilestones } from '@/lib/engagement';
 import { formatTimestamp } from '@/lib/format';
 import { setFormHandoff, takeFormHandoff } from '@/lib/formHandoff';
 import { validateDraft, type DraftErrors } from '@/lib/validation';
 import { useSession } from '@/state/SessionProvider';
-import type { Readings, SymptomEntry, SymptomStatus } from '@/types/astra';
+import type { AdaptiveResponse, Readings, SymptomEntry, SymptomStatus } from '@/types/astra';
 
 const guidance = [
   'Manual entries only — this prototype has no live sensor feed.',
@@ -61,11 +63,30 @@ export default function CheckInScreen() {
   const [symptomStatus, setSymptomStatus] = useState<SymptomStatus>('not-answered');
   const [bodyMapOpen, setBodyMapOpen] = useState(false);
   const [activityNote, setActivityNote] = useState('');
+  const [adaptiveResponses, setAdaptiveResponses] = useState<AdaptiveResponse[]>([]);
+  const [adaptiveSkipped, setAdaptiveSkipped] = useState<string[]>([]);
+  const [contextOpen, setContextOpen] = useState(false);
   const [errors, setErrors] = useState<DraftErrors>({});
   const [saved, setSaved] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  const formValues: CheckInFormValues = {
+    texts,
+    subjective: scales,
+    symptoms,
+    symptomEntries,
+    symptomStatus,
+    activityNote,
+    adaptiveResponses,
+    adaptiveSkipped,
+  };
+  const adaptiveAvailable = evaluateAdaptiveQuestions(
+    buildAdaptiveContext(formValues),
+    { limit: Number.POSITIVE_INFINITY },
+  ).totalAvailable;
+  const showContextSection = adaptiveAvailable > 0 || adaptiveResponses.length > 0;
 
   const newMilestones = useMemo(() => {
     if (!saved || !latestCheckIn) return [];
@@ -84,6 +105,9 @@ export default function CheckInScreen() {
     setSymptomEntries(handoff.symptomEntries);
     setSymptomStatus(handoff.symptomStatus);
     setActivityNote(handoff.activityNote);
+    setAdaptiveResponses(handoff.adaptiveResponses);
+    setAdaptiveSkipped(handoff.adaptiveSkipped);
+    setContextOpen(handoff.adaptiveResponses.length > 0);
     setErrors({});
     setSaved(false);
     setSavedAt(null);
@@ -102,6 +126,9 @@ export default function CheckInScreen() {
     setSymptomEntries([]);
     setSymptomStatus('reported');
     setActivityNote('Light walk in the habitat corridor');
+    setAdaptiveResponses([]);
+    setAdaptiveSkipped([]);
+    setContextOpen(false);
     setErrors({});
     setSaved(false);
   };
@@ -128,7 +155,7 @@ export default function CheckInScreen() {
   };
 
   const save = async () => {
-    const draft = draftFromForm({ texts, subjective: scales, symptoms, symptomEntries, symptomStatus, activityNote });
+    const draft = draftFromForm(formValues);
     const result = validateDraft(draft, texts);
     if (!result.ok) {
       setErrors(result.errors);
@@ -145,6 +172,7 @@ export default function CheckInScreen() {
         symptomEntries: draft.symptomEntries,
         symptomStatus: draft.symptomStatus,
         activityNote: draft.activityNote,
+        adaptiveResponses: draft.adaptiveResponses,
       });
       setSavedAt(new Date().toISOString().slice(11, 16));
       setSaved(true);
@@ -157,7 +185,7 @@ export default function CheckInScreen() {
   };
 
   const openGuided = () => {
-    setFormHandoff({ texts, subjective: scales, symptoms, symptomEntries, symptomStatus, activityNote });
+    setFormHandoff(formValues);
     router.push('/guided-check-in');
   };
 
@@ -289,6 +317,33 @@ export default function CheckInScreen() {
             <KnowledgeLink cardId="symptom-reporting" label="How symptom reporting works" />
           </Section>
 
+          {showContextSection ? (
+            <Section Icon={MessageCircleQuestionMark} title="Add context questions" badge="OPTIONAL · SELF-REPORTED">
+              <Text style={styles.hint}>
+                Optional follow-up questions based only on what you reported. Skipping them does not change your readings, symptoms, or this check-in.
+              </Text>
+              <PrimaryButton
+                variant="secondary"
+                label={contextOpen
+                  ? 'Hide context questions'
+                  : `Add Context Questions${adaptiveAvailable > 0 ? ` (${adaptiveAvailable})` : ''}`}
+                accessibilityHint="Shows optional follow-up questions. Nothing here is required."
+                onPress={() => setContextOpen((open) => !open)}
+              />
+              {contextOpen ? (
+                <AdaptiveQuestions
+                  values={formValues}
+                  source="detailed"
+                  onChange={(responses) => {
+                    setAdaptiveResponses(responses);
+                    setSaved(false);
+                  }}
+                  onSkippedChange={setAdaptiveSkipped}
+                />
+              ) : null}
+            </Section>
+          ) : null}
+
           <Section Icon={FileText} title="Activity note" badge="OPTIONAL · 280 MAX">
             <TextInput
               accessibilityLabel="Activity note"
@@ -330,6 +385,18 @@ export default function CheckInScreen() {
                     <Text key={milestone.id} style={styles.saveMilestone}>{`Milestone earned · ${milestone.title}. ${milestone.description}`}</Text>
                   )) : <Text style={styles.saveJourneyText}>Milestones recognize check-in days and optional learning only. They never reflect reading values.</Text>}
                 </View>
+              </View>
+            ) : null}
+            {saved && latestCheckIn?.adaptiveResponses?.length ? (
+              <View style={styles.savedContext}>
+                <Text style={styles.savedContextTitle}>ADDITIONAL CONTEXT · SELF-REPORTED</Text>
+                {adaptiveContextLines(latestCheckIn.adaptiveResponses).map((line) => (
+                  <View key={line.questionId} style={styles.savedContextRow}>
+                    <Text style={styles.savedContextQuestion}>{line.questionLabel}</Text>
+                    <Text style={styles.savedContextAnswer}>{line.answerLabel}</Text>
+                    <Text style={styles.savedContextTime}>{`${line.answeredAtText} · ${line.sourceLabel}`}</Text>
+                  </View>
+                ))}
               </View>
             ) : null}
             <View style={styles.saveActions}>
@@ -491,6 +558,12 @@ const styles = StyleSheet.create({
   saveMilestone: { fontFamily: fonts.semibold, fontSize: 11.5, lineHeight: 17, color: colors.success[400] },
   saveJourneyText: { ...typography.meta, fontSize: 10.5, lineHeight: 15, color: colors.slate[400] },
   saveActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', gap: 10 },
+  savedContext: { gap: 7, padding: 11, borderRadius: radius.sm, borderWidth: 1, borderColor: stitch.glassBorder, backgroundColor: 'rgba(4, 16, 28, 0.46)' },
+  savedContextTitle: { ...typography.label, color: colors.slate[400] },
+  savedContextRow: { gap: 2 },
+  savedContextQuestion: { ...typography.meta, color: colors.slate[300] },
+  savedContextAnswer: { fontFamily: fonts.semibold, fontSize: 12.5, lineHeight: 18, color: colors.offWhite },
+  savedContextTime: { fontFamily: fonts.mono, fontSize: 9, lineHeight: 13, color: colors.slate[500] },
 
   sidePanel: { padding: 16, gap: 12, borderColor: 'rgba(141, 187, 255, 0.14)' },
   sideHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' },

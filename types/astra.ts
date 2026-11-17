@@ -40,6 +40,27 @@ export type SymptomEntry = {
   recordedAtUTC: string;
 };
 
+export type AdaptiveRuleId = 'fatigue' | 'head' | 'sleep' | 'dizziness' | 'body' | 'measurement';
+export type AdaptiveAnswerSource = 'guided' | 'detailed';
+
+export type AdaptiveAnswer = {
+  /** Stable option IDs from the question catalog. Empty for a text-only answer. */
+  optionIds: string[];
+  /** Bounded free-text note. Null when the question has no text part. */
+  text: string | null;
+};
+
+/** Optional, self-reported follow-up answer. Absent on records saved before adaptive questions existed. */
+export type AdaptiveResponse = {
+  questionId: string;
+  ruleId: AdaptiveRuleId;
+  answer: AdaptiveAnswer;
+  source: AdaptiveAnswerSource;
+  answeredAtUTC: string;
+  /** Resolved body-map location used in the stored question wording. Null for non-body questions. */
+  contextLabel: string | null;
+};
+
 export type CheckIn = {
   id: string;
   recordedAt: string;
@@ -50,6 +71,8 @@ export type CheckIn = {
   symptomEntries?: SymptomEntry[];
   /** Present only on records saved with the body-map-aware forms. */
   symptomStatus?: SymptomStatus;
+  /** Optional follow-up answers. Absent on records saved before adaptive questions existed. */
+  adaptiveResponses?: AdaptiveResponse[];
 };
 
 export type Baseline = {
@@ -116,4 +139,5 @@ export type CheckInDraft = {
   activityNote: string;
   symptomEntries?: SymptomEntry[];
   symptomStatus?: SymptomStatus;
+  adaptiveResponses?: AdaptiveResponse[];
 };

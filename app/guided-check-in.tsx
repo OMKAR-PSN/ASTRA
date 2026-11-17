@@ -6,6 +6,7 @@ import type { LucideIcon } from 'lucide-react-native';
 import { AccessibilityInfo, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions, type ViewStyle } from 'react-native';
 
 import { DurationStepper } from '@/components/DurationStepper';
+import { AdaptiveQuestions } from '@/components/AdaptiveQuestions';
 import { GuidedMoodChoices } from '@/components/GuidedMoodChoices';
 import { KnowledgeLink } from '@/components/KnowledgeLink';
 import { NumericField } from '@/components/NumericField';
@@ -23,6 +24,7 @@ import { colors, fonts, layout, radius, stitch, type as typography } from '@/con
 import { symptomOptions } from '@/fixtures/checkInOptions';
 import { crewProfile } from '@/fixtures/crew';
 import { draftFromForm, emptyFormValues, formHasInput, type CheckInFormValues, type NumericKey } from '@/lib/checkInForm';
+import { adaptiveContextLines, describeAdaptiveResponse } from '@/lib/adaptiveQuestions';
 import { DIFFERENCE_THRESHOLD_PERCENT } from '@/lib/comparison';
 import { deriveRoutineProgress, evaluateMilestones } from '@/lib/engagement';
 import { setFormHandoff, takeFormHandoff } from '@/lib/formHandoff';
@@ -241,6 +243,16 @@ export default function GuidedCheckInScreen() {
     clearMessages();
   };
 
+  const updateAdaptiveResponses = (adaptiveResponses: CheckInFormValues['adaptiveResponses']) => {
+    setValues((current) => ({ ...current, adaptiveResponses }));
+    clearMessages();
+  };
+
+  const updateAdaptiveSkipped = (adaptiveSkipped: string[]) => {
+    setValues((current) => ({ ...current, adaptiveSkipped }));
+    clearMessages();
+  };
+
   const goTo = (next: GuidedStepId) => {
     if (next === 'review') setReviewNow(new Date().toISOString());
     setPhase(next);
@@ -306,6 +318,7 @@ export default function GuidedCheckInScreen() {
         symptomEntries: draft.symptomEntries,
         symptomStatus: draft.symptomStatus,
         activityNote: draft.activityNote,
+        adaptiveResponses: draft.adaptiveResponses,
       });
       setErrors({});
       setSavedRecord(record);
@@ -406,6 +419,15 @@ export default function GuidedCheckInScreen() {
     status: stress === null ? 'Not answered' : 'Entered',
     tone: stress === null ? 'missing' : 'ok',
   };
+  const adaptiveEntries: ReviewEntry[] = (draftFromForm(values).adaptiveResponses ?? []).map((response) => {
+    const described = describeAdaptiveResponse(response);
+    return {
+      label: described.question,
+      value: described.answer,
+      status: 'Self-reported',
+      tone: 'info',
+    };
+  });
 
   return (
     <ScreenContainer title="Guided health check-in" hideHeading scrollToTopKey={phase}>
@@ -659,6 +681,12 @@ export default function GuidedCheckInScreen() {
                       style={styles.note}
                     />
                   </View>
+                  <AdaptiveQuestions
+                    values={values}
+                    source="guided"
+                    onChange={updateAdaptiveResponses}
+                    onSkippedChange={updateAdaptiveSkipped}
+                  />
                   <Callout Icon={ShieldCheck}>
                     Symptoms are recorded without an urgency rating. If anything concerns you, follow your crew&apos;s approved mission procedures and contact the flight surgeon.
                   </Callout>
@@ -690,6 +718,9 @@ export default function GuidedCheckInScreen() {
                     ]}
                     onEdit={goTo}
                   />
+                  {adaptiveEntries.length > 0 ? (
+                    <ReviewGroup title="Additional context · optional" step="symptoms" entries={adaptiveEntries} onEdit={goTo} />
+                  ) : null}
 
                   <View style={styles.recordGroup}>
                     <Text accessibilityRole="header" style={styles.reviewGroupTitle}>Record</Text>
@@ -772,6 +803,19 @@ export default function GuidedCheckInScreen() {
                   showTimestamps
                 />
               </View>
+
+              {savedRecord.adaptiveResponses && savedRecord.adaptiveResponses.length > 0 ? (
+                <View style={styles.savedSymptoms}>
+                  <Text style={styles.savedSymptomsLabel}>ADDITIONAL CONTEXT · SELF-REPORTED</Text>
+                  {adaptiveContextLines(savedRecord.adaptiveResponses).map((line) => (
+                    <View key={line.questionId} style={styles.savedContextRow}>
+                      <Text style={styles.savedContextQuestion}>{line.questionLabel}</Text>
+                      <Text style={styles.savedContextAnswer}>{line.answerLabel}</Text>
+                      <Text style={styles.savedContextTime}>{line.answeredAtText} · {line.sourceLabel}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
 
               <View style={styles.savedJourney}>
                 <View style={styles.savedJourneyIcon}><Sparkles size={16} color={colors.primary[300]} strokeWidth={2} /></View>
@@ -1088,6 +1132,10 @@ const styles = StyleSheet.create({
   savedJourneyText: { ...typography.meta, fontSize: 10.5, lineHeight: 15, color: colors.slate[400] },
   savedSymptoms: { alignSelf: 'stretch', gap: 7, padding: 12, borderRadius: radius.sm, borderWidth: 1, borderColor: stitch.glassBorder, backgroundColor: 'rgba(4, 16, 28, 0.46)' },
   savedSymptomsLabel: { ...typography.label, color: colors.slate[400] },
+  savedContextRow: { gap: 1, paddingVertical: 5, borderTopWidth: 1, borderTopColor: 'rgba(40, 60, 80, 0.55)' },
+  savedContextQuestion: { ...typography.meta, color: colors.slate[400] },
+  savedContextAnswer: { fontFamily: fonts.semibold, fontSize: 12.5, lineHeight: 18, color: colors.offWhite },
+  savedContextTime: { fontFamily: fonts.mono, fontSize: 9, lineHeight: 13, color: colors.slate[500] },
   savedGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignSelf: 'stretch' },
   savedCell: {
     flexBasis: 130,

@@ -1,4 +1,5 @@
 import { emptySession, normalizeStoredSession, type SessionRepository, type StoredSession } from '@/lib/sessionRepositoryContract';
+import { sanitizeAdaptiveResponses } from '@/lib/adaptiveQuestions';
 import { addEngagementEvent, setJourneyVisibility, type EngagementEventKind, type EngagementState } from '@/lib/engagement';
 import { normalizeSymptomStatus, sanitizeSymptomEntries } from '@/lib/symptoms';
 import { createReportSnapshot } from '@/lib/snapshot';
@@ -66,6 +67,8 @@ function createWebRepository(): SessionRepository {
             saved.symptomEntries = sanitizeSymptomEntries(draft.symptomEntries);
             saved.symptomStatus = normalizeSymptomStatus(draft.symptomStatus, saved.symptoms, saved.symptomEntries);
           }
+          const adaptiveResponses = sanitizeAdaptiveResponses(draft.adaptiveResponses ?? []);
+          if (adaptiveResponses.length > 0) saved.adaptiveResponses = adaptiveResponses;
           store.put({ ...data, checkIns: [...data.checkIns, saved] }, 'data');
         };
         transaction.oncomplete = () => { db.close(); resolve(saved); };

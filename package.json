@@ -21,7 +21,8 @@
     "test:engagement": "node --import ./tests/register-loader.mjs --test tests/engagement.test.mjs",
     "test:symptoms": "node --import ./tests/register-loader.mjs --test tests/symptoms.test.mjs",
     "test:knowledge": "node --import ./tests/register-loader.mjs --test tests/knowledge.test.mjs",
-    "test:voice": "node --import ./tests/register-loader.mjs --test tests/voice.test.mjs"
+    "test:voice": "node --import ./tests/register-loader.mjs --test tests/voice.test.mjs",
+    "test:adaptive": "node --import ./tests/register-loader.mjs --test tests/adaptiveQuestions.test.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",

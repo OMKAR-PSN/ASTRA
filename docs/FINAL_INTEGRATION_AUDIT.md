@@ -90,14 +90,14 @@ One unthrottled local Edge run, desktop viewport, reduced motion, fresh context.
 
 | Action | Observed ms |
 | --- | ---: |
-| Initial dashboard | 1210 |
-| Primary tab switch | 533 |
-| Open Replay via URL | 945 |
-| Open Guided Check-In via URL | 969 |
-| Load fictional crew fixture (reduced motion) | 429 |
-| Open Knowledge Hub via URL | 945 |
-| Render Body Map after opening | 151 |
-| Activate Privacy Shield | 99 |
+| Initial dashboard | 1396 |
+| Primary tab switch | 439 |
+| Open Replay via URL | 987 |
+| Open Guided Check-In via URL | 955 |
+| Load fictional crew fixture (reduced motion) | 386 |
+| Open Knowledge Hub via URL | 939 |
+| Render Body Map after opening | 146 |
+| Activate Privacy Shield | 84 |
 
 No page errors were recorded in the successful combined journey or feature harnesses; no SVG responder warnings surfaced there. Source inspection found cleanup for replay timers and voice watchdogs/provider subscriptions. This is not a heap-profile or long-duration memory-leak certification. No claim of quantified speedup is made.
 
@@ -129,6 +129,8 @@ Crew Summary constructs a restricted projection of IDs/counts/timestamps/deliver
 | Feasibility | 7 | Feasible educational prototype; large gap to mission deployment | Define a limited validated next deployment scope |
 
 ## Reproduction and evidence
+
+The final checkpoint was re-run end to end: 217/217 unit and receiver tests, TypeScript, lint, Expo dependency check, production web export, the 453 feature/navigation assertions, the 39-assertion combined journey, both storage-recovery checks and the delayed-receipt session check all passed with no page errors. Timings above are from that final sample.
 
 Core gates:
 

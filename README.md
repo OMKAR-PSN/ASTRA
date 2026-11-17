@@ -6,14 +6,13 @@
 
 **An explainable, offline-first astronaut health companion**
 
-*NASA Space Apps Challenge 2026 — independent hackathon prototype*
+*NASA Space Apps Challenge 2026 — Team **Algo_Avengers***
 
 [![Tests](https://img.shields.io/badge/tests-217%20passing-brightgreen)](#-validation-evidence)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)](tsconfig.json)
 [![Expo SDK](https://img.shields.io/badge/Expo-SDK%2058-000020?logo=expo)](package.json)
-[![License](https://img.shields.io/badge/license-see%20LICENSE-lightgrey)](#-team--credits)
 
-[Explore Features](#-what-we-built) · [Architecture](#-system-architecture) · [Quick Start](#-run-locally) · [Demo](#-three-minute-judge-demo) · [Limitations](#-scope--safety)
+[Features](#-what-we-built) · [Screenshots](#-screenshots) · [Architecture](#-system-architecture) · [Quick Start](#-run-locally) · [Limitations](#-scope--safety)
 
 </div>
 
@@ -21,17 +20,15 @@
 
 > **Mission statement:** Make the recording, understanding, and responsible sharing of astronaut health observations simpler — even when connectivity is limited and Earth is far away.
 
-> **Prototype disclosure:** ASTRA CARE is a **synthetic educational prototype**. It is **not** NASA-approved, clinically validated, flight-certified, or intended to replace mission medical procedures. All crew profiles and readings are fictional. The project is not affiliated with or endorsed by NASA.
+> **Prototype disclosure:** ASTRA CARE is a **synthetic educational prototype** built for the NASA Space Apps Challenge 2026. It is **not** NASA-approved, clinically validated, flight-certified, or intended to replace mission medical procedures. All crew profiles and readings are fictional.
 
 ---
 
 ## 🌌 The Problem
 
-Space health monitoring is not only about collecting measurements. A useful crew-facing workflow also needs to help people **document symptoms in context, understand what recorded changes mean, revisit historical trends, and manage the reality of communication delays**. On long-duration missions — to the Moon, Mars, or beyond — astronauts carry much of the responsibility for spotting changes in their own health.
+Space health monitoring is not only about collecting measurements. A useful crew-facing workflow must also help astronauts **document symptoms in context, understand what recorded changes mean, revisit historical trends, and manage communication delays**. On long-duration missions to the Moon, Mars, or beyond, crew members carry significant responsibility for spotting changes in their own health.
 
-NASA's Human Research Program identifies [five hazards of human spaceflight](https://www.nasa.gov/hrp/hazards/): space radiation, isolation and confinement, distance from Earth, altered gravity, and hostile closed environments. Each hazard can produce cascading health effects that benefit from early observation and clear documentation.
-
-ASTRA CARE explores a **complementary, human-centered software layer** to help astronauts record, understand, and responsibly communicate their observations.
+NASA's Human Research Program identifies [five hazards of human spaceflight](https://www.nasa.gov/hrp/hazards/): space radiation, isolation and confinement, distance from Earth, altered gravity, and hostile closed environments. ASTRA CARE explores a **human-centered, offline-first software layer** that helps crew members record, understand, and responsibly communicate their health observations.
 
 ---
 
@@ -39,17 +36,17 @@ ASTRA CARE explores a **complementary, human-centered software layer** to help a
 
 | # | Capability | What It Does |
 |---|---|---|
-| 01 | **Guided 60-Second Check-In** | Step-by-step health observation entry. Each question is explained, with an optional detailed-form alternative for experienced users. |
-| 02 | **Plain-Language Assessment** | Explains recorded values, personal-baseline comparisons, and calculation details in plain language — no jargon. |
-| 03 | **Mission Health Replay** | Read-only historical timeline of all saved check-ins, with deterministic point-in-time assessment for each record. |
-| 04 | **Mission Wellness Journey** | Optional participation milestones that track consistent check-in habits. Milestones are **participation-based**, never rewards for specific vital-sign values. |
-| 05 | **Interactive Body Map** | Front/back SVG symptom selection with an accessible text-list alternative. Symptoms add written context to observations. |
-| 06 | **Offline Crew Knowledge Hub** | 21 locally bundled educational cards covering the five spaceflight hazards, with research references and full-text search. No network required. |
-| 07 | **Voice Guidance** | Optional text-to-speech reads check-in questions and knowledge explanations. Requires installed device speech engine; all primary interactions have visible text. |
-| 08 | **Adaptive Follow-Up Questions** | Deterministic context questions triggered by selected symptoms. These are structured prompts for richer documentation — **not clinical triage**. |
-| 09 | **Crew Privacy Dashboard** | Restricted operational summary and visual privacy shield. The shield conceals on-screen information; it is **not** device authentication or encryption. |
+| 01 | **Guided 60-Second Check-In** | Step-by-step health observation entry with plain-language prompts and an optional detailed-form alternative. |
+| 02 | **Plain-Language Assessment** | Explains recorded values, personal-baseline comparisons, and calculation details without medical jargon. |
+| 03 | **Mission Health Replay** | Read-only historical timeline of saved check-ins with deterministic point-in-time assessments. |
+| 04 | **Mission Wellness Journey** | Optional participation milestones tracking consistent check-in habits — participation-based, never tied to vital-sign values. |
+| 05 | **Interactive Body Map** | Front/back SVG symptom entry with an accessible text-list alternative for documenting localized discomfort. |
+| 06 | **Offline Crew Knowledge Hub** | 21 locally bundled educational cards covering spaceflight health topics, research references, and offline search. |
+| 07 | **Voice Guidance** | Optional text-to-speech for check-in questions and explanations, with full visible text fallback. |
+| 08 | **Adaptive Follow-Up Questions** | Deterministic context questions triggered by selected symptoms for richer documentation — not clinical triage. |
+| 09 | **Crew Privacy Dashboard** | Restricted operational summary and visual privacy shield for screen discretion (visual concealment, not authentication). |
 
-**Also included:** fictional crew demo-profile selection (not real QR scanning or NFC authentication), local-first records, immutable confirmed-report snapshots, an offline outbox, explicit send/retry, and a separate simulated ground receiver with SQLite-persisted receipts.
+**Also included:** fictional demo-crew selection (Avery Rao fixture), local-first persistence, immutable confirmed report snapshots, an offline delivery outbox, and a separate simulated Fastify + SQLite ground receiver.
 
 ---
 
@@ -58,23 +55,21 @@ ASTRA CARE explores a **complementary, human-centered software layer** to help a
 ```
 Identify demo crew
   → Guided or detailed check-in
-  → Body Map / adaptive context questions
+  → Body Map & adaptive context questions
   → Validate & save locally
   → Understand plain-language assessment
-  → Explore replay & knowledge hub
+  → Explore replay & offline knowledge hub
   → Confirm report (creates immutable snapshot)
-  → Report queued in offline outbox
+  → Queue in offline outbox
   → Explicit user-initiated send
   → Validate simulated ground receipt
 ```
 
-A **disconnected application** can still record observations, run assessments, browse the knowledge hub, and queue reports. Restored connectivity alone **never** marks a report as delivered — only an explicit send action and validated receiver receipt can do that.
+A disconnected app can still record observations, compute assessments, browse the Knowledge Hub, and queue reports. Restored connectivity alone never marks a report as delivered — only an explicit send action and a validated receiver receipt do.
 
 ---
 
 ## 📸 Screenshots
-
-> Real application captures — taken from the live web build.
 
 | Mission Overview | Guided Check-In | Interactive Body Map |
 |---|---|---|
@@ -83,8 +78,6 @@ A **disconnected application** can still record observations, run assessments, b
 | Plain-Language Assessment | Mission Health Replay | Reports & Sync |
 |---|---|---|
 | ![Assessment](docs/assets/screenshots/assessment.png) | ![Replay](docs/assets/screenshots/replay.png) | ![Delivery](docs/assets/screenshots/delivery.png) |
-
-> **Note:** If the images above do not render, screenshots have not yet been added to `docs/assets/screenshots/`. See the [Judge Demo Runbook](docs/JUDGE_DEMO_RUNBOOK.md) for a step-by-step walkthrough of each screen.
 
 ---
 
@@ -120,35 +113,27 @@ flowchart TB
     Privacy["Visual shield + restricted summary"] -.-> UI
 ```
 
-**Data flow summary:** Observations enter via guided or detailed check-in and are validated before local storage. The assessment engine applies a deterministic 10%-deviation rule against the fictional synthetic baseline. Reports are confirmed as immutable snapshots and queued locally; the user explicitly initiates each send attempt. The simulated receiver stores accepted payloads in SQLite and returns a validated receipt. Knowledge, replay, milestones, and voice all work without network access.
-
-**Trust boundaries:** Demo profile selection is not authentication. Local storage is not production-encrypted. SHA-256 checks are for payload consistency, not secure communications. Web offline capability requires a previously installed, retained cache.
-
 ---
 
 ## 🛠 Tech Stack
 
 | Layer | Technologies |
 |---|---|
-| **App framework** | React Native 0.88, Expo SDK 58, TypeScript (strict) |
+| **Framework** | React Native 0.88, Expo SDK 58, TypeScript (strict) |
 | **Routing** | Expo Router 58 (file-based, typed routes) |
 | **UI** | React Native Web, Expo Linear Gradient, Expo Blur, Lucide icons, react-native-svg |
-| **State** | React Context + useReducer, isolated PresentationSession |
-| **Web persistence** | IndexedDB (via web repository adapter) |
-| **Native persistence** | Expo SQLite (via native repository adapter) |
-| **Assessment** | Deterministic rule-based comparisons, plain-language explanation templates |
-| **Speech** | expo-speech with visible text fallback |
-| **Simulated receiver** | Fastify 5, Node.js, node:sqlite (experimental) |
-| **Testing** | Node.js built-in test runner (217 unit + receiver tests), browser journey scripts |
-| **Quality** | TypeScript strict, Expo lint (ESLint), Prettier |
+| **State** | React Context + `useReducer`, isolated `PresentationSession` |
+| **Persistence** | IndexedDB (web), Expo SQLite (native), in-memory demo fixtures |
+| **Assessment** | Deterministic rule-based comparisons & plain-language templates |
+| **Speech** | `expo-speech` with visible text fallback |
+| **Simulated Receiver** | Fastify 5, Node.js, SQLite |
+| **Testing & Quality** | Node.js test runner (217 tests), Playwright browser audits, ESLint, TypeScript |
 
 ---
 
 ## ⚡ Run Locally
 
-**Prerequisites:** Node.js 22.19 or later (Node 22 series). `npm ci` installs exact locked versions. Use synthetic data only.
-
-### Development web server
+**Prerequisites:** Node.js 22.19+ and npm. Use synthetic data only.
 
 ```bash
 git clone https://github.com/OMKAR-PSN/ASTRA.git
@@ -157,127 +142,50 @@ npm ci
 npm run web
 ```
 
-The development server prints the local URL. Open it in your browser.
-
-### Production web build (offline demo)
+### Production Web & Offline Mode
 
 ```bash
-npm run build:web   # exports to dist/web + generates service-worker cache
-npm run preview:web # serves dist/web locally
+npm run build:web
+npm run preview:web
 ```
 
-Open the served site **online at least once**, allow the service worker to install, then test cached pages offline. A first-ever visit without network is not supported by the cache.
+Open the served app online once to allow the service worker to cache assets; subsequent offline reloads are supported from cache.
 
-### Optional simulated ground receiver
+### Optional Simulated Ground Receiver
 
-In a separate terminal:
+Run in a separate terminal to test report delivery and receipts:
 
 ```bash
 npm run receiver
 ```
 
-Configure the receiver URL **before** building the web app. In PowerShell:
-
-```powershell
-$env:EXPO_PUBLIC_RECEIVER_URL = "http://127.0.0.1:8787"
-npm run build:web
-npm run preview:web
-```
-
-The ground timeline is then visible at `http://127.0.0.1:8787/mission`.
-
-> **Phone testing:** On a phone, `localhost` refers to the phone itself, not your PC. Use your PC's LAN IP address instead. See [docs/EXPO_GO_SETUP.md](docs/EXPO_GO_SETUP.md) for the full Expo Go setup guide.
-
----
-
-## 🔑 Environment Variables
-
-Create a `.env.local` file (gitignored) based on the provided template:
-
-```bash
-cp .env.example .env.local
-```
-
-| Variable | Purpose | Default |
-|---|---|---|
-| `EXPO_PUBLIC_RECEIVER_URL` | URL of the simulated ground receiver | *(unset — delivery disabled)* |
-
-**Without a receiver URL**, the app works fully for local check-ins, assessments, replay, and report queuing. Only the final send step requires a reachable receiver.
+> For running on a phone via Expo Go (SDK 58), see [`docs/EXPO_GO_SETUP.md`](docs/EXPO_GO_SETUP.md).
 
 ---
 
 ## 🧪 Validation Evidence
 
-The **17 November 2026 integration audit** (`0897e31`) reported:
-
 | Check | Result |
 |---|---|
-| Unit and receiver tests | **217 / 217 passed** |
-| Feature/navigation browser assertions | **453 / 453 passed** |
-| Combined browser journey | **39 checks passed** |
-| TypeScript strict check | ✅ Passed |
-| Expo lint | ✅ Passed |
-| Production web export | ✅ Passed |
-| Android / iOS JS & asset exports | ✅ Passed — **not** on-device validation |
+| Unit & receiver tests (`npm test`) | **217 / 217 passed** |
+| Feature & navigation browser assertions | **453 / 453 passed** |
+| Combined end-to-end browser journey | **39 checks passed** |
+| TypeScript (`npm run typecheck`) & ESLint (`npm run lint`) | ✅ Passed |
+| Production web export (`npm run build:web`) | ✅ Passed |
 
-Reproduce the core gates locally:
-
-```bash
-npm test          # 217 unit + receiver tests
-npm run typecheck # TypeScript strict check
-npm run lint      # Expo lint
-npm run build:web # production web export
-```
-
-Full evidence and defect history: [`docs/FINAL_INTEGRATION_AUDIT.md`](docs/FINAL_INTEGRATION_AUDIT.md)
-
-> These counts are historical verification results, **not** clinical, security, accessibility, or native-device certification.
-
----
-
-## 🎬 Three-Minute Judge Demo
-
-1. **Identify:** Choose the fictional **Avery Rao** demo crew profile (clearly marked as synthetic).
-2. **Record:** Open **Guided Check-In**, answer the step-by-step questions, add a Body Map symptom.
-3. **Explain:** Inspect the **Plain-Language Assessment** — expand the calculation detail section.
-4. **Explore:** Open **Mission Health Replay** and navigate a historical review event.
-5. **Protect:** Show the restricted crew summary and activate the **Visual Privacy Shield**.
-
-### Extended path (optional)
-
-6. Browse the offline **Knowledge Hub** — search for "radiation" with no network.
-7. Confirm the latest check-in as a report, queue it, explicitly send it, and verify the **simulated ground receipt**.
-
-> See [`docs/JUDGE_DEMO_RUNBOOK.md`](docs/JUDGE_DEMO_RUNBOOK.md) for the full step-by-step script. Voice playback is optional — do not depend on audible output unless tested on the presentation device.
+Full audit details: [`docs/FINAL_INTEGRATION_AUDIT.md`](docs/FINAL_INTEGRATION_AUDIT.md)
 
 ---
 
 ## 🔐 Scope & Safety
 
-| Boundary | What ASTRA CARE Does | What It Does Not Do |
+| Area | Implemented in Prototype | Out of Scope |
 |---|---|---|
-| **Sensing** | Manual observation entry, fictional demo fixtures | Live wearable, NFC, or real sensor integration |
-| **Assessment** | 10% synthetic demonstration comparison | Medical diagnosis or validated clinical thresholds |
-| **Identity** | Fictional demo profile selection | Real authentication, per-user data ownership |
-| **Security** | Local storage, visual privacy shield | Production encryption, authenticated access control |
-| **Ground link** | Simulated Fastify receiver with SQLite receipts | Real ground-control or satellite communication |
-| **Speech** | Optional expo-speech with text fallback | Guaranteed offline voice across all device types |
-| **Native** | JavaScript and asset export confirmed | On-device runtime, TalkBack/VoiceOver verification |
-| **Offline web** | Service-worker cache after first online visit | First-ever visit without network |
-
-These boundaries are deliberate and documented. ASTRA CARE is an **engineering and usability proof of concept**.
-
----
-
-## 🔭 Future Roadmap
-
-- Expert review of observation workflows with flight medicine and human factors specialists
-- Real-device testing (Android, iOS) and accessibility audits (TalkBack, VoiceOver)
-- Secure local identity design (not demo card selection)
-- Authorized sensor and wearable integration research
-- Clinical validation of any health thresholds before deployment
-- Mission-system communication integration research
-- Production data protection and encryption
+| **Sensing** | Manual observation entry & fictional fixtures | Live wearables, NFC, or real medical sensors |
+| **Assessment** | Deterministic 10% synthetic baseline rule | Clinical diagnosis or validated medical thresholds |
+| **Security & Privacy** | Local storage & visual Privacy Shield | Production encryption or authenticated access control |
+| **Ground Link** | Local simulated Fastify receiver & SQLite receipts | Real spacecraft telemetry or ground-control links |
+| **Native Runtime** | Web verified; native JS/asset export verified | Physical Android/iOS device & TalkBack/VoiceOver audits |
 
 ---
 
@@ -288,38 +196,18 @@ These boundaries are deliberate and documented. ASTRA CARE is an **engineering a
 - [Canadian Space Agency — Bio-Monitor](https://www.csa-asc.gc.ca/eng/sciences/bio-monitor.asp)
 - [NASA — Cardiovascular Health in Microgravity](https://www.nasa.gov/missions/station/cardiovascular-health-in-microgravity/)
 
-These sources provide **general problem context**, not validation or endorsement of ASTRA CARE.
+---
+
+## 👩‍🚀 Team
+
+**Team:** `Algo_Avengers`  
+**Event:** NASA Space Apps Challenge 2026
 
 ---
 
-## 👩‍🚀 Team & Credits
+## 📂 Documentation
 
-**Hackathon:** NASA Space Apps Challenge 2026
-
-| Role | Member |
-|---|---|
-| Team name | *[Add your team name]* |
-| Member 1 | *[Name — responsibility]* |
-| Member 2 | *[Name — responsibility]* |
-| Member 3 | *[Name — responsibility]* |
-
-> **Before publishing:** replace all placeholders above with verified names and confirm the applicable project license. Do not imply an open-source license unless a LICENSE file is actually included in this repository.
-
----
-
-## 📂 Documentation Index
-
-| Document | Purpose |
-|---|---|
-| [docs/JUDGE_DEMO_RUNBOOK.md](docs/JUDGE_DEMO_RUNBOOK.md) | Step-by-step judge demonstration script |
-| [docs/FINAL_JUDGE_QA.md](docs/FINAL_JUDGE_QA.md) | Defensible answers to common judge questions |
-| [docs/FINAL_INTEGRATION_AUDIT.md](docs/FINAL_INTEGRATION_AUDIT.md) | Full integration audit with test evidence |
-| [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md) | Known limitations and release gates |
-| [docs/EXPO_GO_SETUP.md](docs/EXPO_GO_SETUP.md) | Expo Go phone setup guide |
-| [docs/decisions.md](docs/decisions.md) | Key implementation decisions log |
-| [docs/PROGRESS.md](docs/PROGRESS.md) | Feature milestone history |
-
-Feature implementation notes are in `docs/` — one per feature milestone.
+See [`docs/README.md`](docs/README.md) for the full documentation index, including architecture notes, feature implementation reports, known limitations, and audit evidence.
 
 ---
 
@@ -327,6 +215,6 @@ Feature implementation notes are in `docs/` — one per feature milestone.
 
 ### ✨ Every Observation Matters. Even Beyond Earth.
 
-*ASTRA CARE — NASA Space Apps Challenge 2026 — Independent hackathon prototype*
+*ASTRA CARE · Team Algo_Avengers · NASA Space Apps Challenge 2026*
 
 </div>

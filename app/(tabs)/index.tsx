@@ -1,12 +1,13 @@
 import { useMemo } from 'react';
 import { useRouter } from 'expo-router';
-import { Activity, ArrowRight, ArrowUpRight, ChartNoAxesCombined, ChevronRight, ClipboardList, Database, Eye, HeartPulse, Info, Moon, ShieldCheck, Smile, Sparkles, Thermometer, Zap } from 'lucide-react-native';
+import { Activity, ArrowRight, ArrowUpRight, BookOpen, ChartNoAxesCombined, ChevronRight, ClipboardList, Database, Eye, HeartPulse, Info, Moon, ShieldCheck, Smile, Sparkles, Thermometer, Zap } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image, Linking, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions, type ViewStyle } from 'react-native';
 
 import { ComparisonTable } from '@/components/ComparisonTable';
 import { EmptyState } from '@/components/EmptyState';
+import { KnowledgeLink } from '@/components/KnowledgeLink';
 import { ObservationCard } from '@/components/ObservationCard';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { ScreenContainer } from '@/components/ScreenContainer';
@@ -334,6 +335,14 @@ export default function MissionHomeScreen() {
           <Text style={styles.ruleText}>NASA HRP CONTEXT</Text>
         </View>
         <Text style={styles.hazardBody}>NASA&apos;s Human Research Program studies space radiation, isolation and confinement, distance from Earth, gravity fields, and hostile or closed environments. This prototype explores keeping records accessible during communication outages.</Text>
+        <View style={styles.hazardLinks}>
+          <KnowledgeLink
+            cardId="five-hazards"
+            label="Read: The five hazards of human spaceflight"
+            hint="Opens the bundled knowledge card. Available offline."
+          />
+          <PrimaryButton variant="secondary" label="Crew Knowledge Hub" Icon={BookOpen} onPress={() => router.navigate('/knowledge')} style={styles.knowledgeButton} />
+        </View>
         <Pressable accessibilityRole="link" onPress={() => void Linking.openURL('https://www.nasa.gov/hrp/risks/')} style={styles.link}>
           <Text style={styles.cyan}>Explore NASA&apos;s spaceflight hazards</Text><ArrowUpRight size={15} color={colors.primary[300]} />
         </Pressable>
@@ -475,6 +484,8 @@ const styles = StyleSheet.create({
   dataDesktop: { flex: 1, minWidth: 0 },
   hazards: { gap: 10 },
   hazardBody: { ...typography.bodySmall, color: colors.slate[300], maxWidth: 980 },
+  hazardLinks: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 10 },
+  knowledgeButton: { flexGrow: 0 },
   pageFooter: { flexDirection: 'row', alignItems: 'flex-start', gap: 7, paddingTop: 2 },
   pageFooterText: { ...typography.meta, fontSize: 10, lineHeight: 15, color: colors.slate[500], flexShrink: 1 },
 });

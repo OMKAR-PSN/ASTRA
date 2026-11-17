@@ -1,6 +1,6 @@
 # ASTRA CARE progress and remaining work
 
-Status: 15 November 2026. This describes the source implementation, not a deployed production release.
+Status: 17 November 2026. This describes the source implementation, not a deployed production release.
 
 ## Current product
 
@@ -35,6 +35,16 @@ Target repository: OMKAR-PSN/ASTRA, main branch. Source history originates from 
 - Check-in success appears after persistence. Explicit None symptom choice excludes other symptoms.
 - Body-map controls remain available on Health Trends. Mission progress, UTC check-in streak and NASA hazard context are preserved.
 - Existing fictional identity is retained to keep saved report context consistent. The reference mockups are design guidance, not seeded historical evidence.
+
+## Crew Knowledge Hub (Feature 06)
+
+- `/knowledge` is an offline, bundled library of 21 plain-language cards in four categories, with 26 reviewed external citations in `docs/KNOWLEDGE_CONTENT_SOURCES.md`.
+- Each card has three levels: a quick answer, a simple explanation with an everyday example, and an optional "Learn more" section with limitations. Cards carry an explicit content version and review date.
+- Search and category filters are local, case-insensitive and deterministic. There is no chatbot, network text fetch, cloud authentication or AI API.
+- Contextual links from overview, check-in, guided check-in, assessment, trends, replay and delivery open the relevant card. The hub is entry navigation, not a sixth main tab.
+- Card text is bundled; only external citation URLs need internet. Report snapshots and historical observations are unchanged, and knowledge cards cannot be imported into an immutable report.
+- Content maintenance, reference review, retirement and contextual-link validation are documented in KNOWLEDGE_CONTENT_VERSIONING.md. The catalog contains no diagnosis, dosage, emergency-treatment or invented clinical-threshold content.
+- Verification: 20 knowledge unit tests plus the 119 prior tests pass; typecheck, lint, production web export and the 41-check desktop/mobile browser harness pass. Physical Expo Go verification remains outstanding.
 
 The audit and source references are in UI_UX_AUDIT.md. The layout is NASA-inspired, without a certification claim.
 
@@ -91,8 +101,9 @@ Crew web and mobile: record observations, review history/explanations, confirm r
 - Screens: app/(tabs)/index.tsx, check-in.tsx, dashboard.tsx, assessment.tsx (new), report.tsx, delivery.tsx.
 - Reusable UI: MetricTile.tsx, TrendBars.tsx, BodyMap.tsx (new), OutboxItem.tsx, NumericField.tsx, SymptomChecklist.tsx and shared action controls.
 - Persistence/delivery: state/SessionProvider.tsx, lib/sessionRepository.web.ts, lib/sessionRepository.native.ts, lib/sessionRepositoryContract.ts, lib/receiver.ts, lib/reportProtocol.ts, ground-receiver/.
+- Knowledge Hub: app/knowledge.tsx, app/knowledge/[cardId].tsx, components/KnowledgeLink.tsx, KnowledgeCardTile.tsx, KnowledgeDiagram.tsx, lib/knowledge/.
 - Supporting logic/build: lib/format.ts, lib/comparison.ts, lib/readingTiles.ts, lib/checkInStreak.ts, scripts/build-web-cache.mjs, package.json, app.json.
-- Documentation: README.md, docs/decisions.md, docs/UI_UX_AUDIT.md and this progress report.
+- Documentation: README.md, docs/decisions.md, docs/UI_UX_AUDIT.md, docs/KNOWLEDGE_CONTENT_SOURCES.md, docs/KNOWLEDGE_CONTENT_VERSIONING.md and this progress report.
 
 ## Stitch design integration
 

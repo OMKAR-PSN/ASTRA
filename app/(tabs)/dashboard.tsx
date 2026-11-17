@@ -1,13 +1,14 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Activity, ChartNoAxesCombined, Clock3, Database, HeartPulse, Moon, ShieldCheck, Sparkles, Zap } from 'lucide-react-native';
+import { Activity, BookOpen, ChartNoAxesCombined, Clock3, Database, HeartPulse, Moon, ShieldCheck, Sparkles, Zap } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 
 import { BodyMap } from '@/components/BodyMap';
 import { ComparisonTable } from '@/components/ComparisonTable';
 import { EmptyState } from '@/components/EmptyState';
 import { ExplanationPanel } from '@/components/ExplanationPanel';
+import { KnowledgeLink } from '@/components/KnowledgeLink';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { Surface } from '@/components/Surface';
@@ -134,6 +135,13 @@ export default function DashboardScreen() {
             onPress={() => router.navigate('/report')}
             accessibilityHint="Opens the report preview for the latest check-in. Nothing is sent."
           />
+          <PrimaryButton
+            variant="secondary"
+            label="Knowledge Hub"
+            Icon={BookOpen}
+            onPress={() => router.navigate('/knowledge')}
+            accessibilityHint="Opens the offline Crew Knowledge Hub."
+          />
         </View>
       </View>
 
@@ -160,6 +168,7 @@ export default function DashboardScreen() {
         <CardHead Icon={ChartNoAxesCombined} title="Physiological trend trajectory" meta={`FD ${crewProfile.missionDay} · SYNTHETIC BASELINE`} />
         <Text style={styles.cardMeta}>Recorded observations against the synthetic baseline and {DIFFERENCE_THRESHOLD_PERCENT}% demo band. Gaps indicate missing readings.</Text>
         <TrendBars title="Heart rate" unit="bpm" decimals={0} baseline={syntheticBaseline.heartRateBpm} checkIns={checkIns} read={(item) => item.readings.heartRateBpm} />
+        <KnowledgeLink cardId="personal-baseline" label="What is a personal baseline?" />
         <View style={styles.statStrip}>
           {chartStats.map((stat) => (
             <View key={stat.label} style={styles.statBlock}>
@@ -222,6 +231,7 @@ export default function DashboardScreen() {
               <View style={styles.dataRow}><Text style={styles.dataLabel}>Latest local save</Text><Text style={styles.dataValue} numberOfLines={1}>{formatTimestamp(latestCheckIn.recordedAt)}</Text></View>
             </View>
             <Text style={styles.footnote}>Readings are manual entries stored on this device. No live sensor feed or ground sync is implied.</Text>
+            <KnowledgeLink cardId="missing-data" label="What does missing data mean?" />
           </Surface>
         </View>
       </View>

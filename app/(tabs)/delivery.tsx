@@ -5,6 +5,7 @@ import { StyleSheet, Switch, Text, View } from 'react-native';
 
 import { EmptyState } from '@/components/EmptyState';
 import { Grid, GridItem } from '@/components/Grid';
+import { KnowledgeLink } from '@/components/KnowledgeLink';
 import { LinkIndicator } from '@/components/StatusPill';
 import { OutboxItem } from '@/components/OutboxItem';
 import { Panel } from '@/components/Panel';
@@ -65,6 +66,10 @@ export default function DeliveryScreen() {
             ) : (
               <PrimaryButton label="Show report explanation" variant="secondary" onPress={() => { void revealExplanation(); }} />
             )}
+            <View style={styles.knowledgeLinks}>
+              <KnowledgeLink cardId="offline-report-queue" label="What does queued mean?" />
+              <KnowledgeLink cardId="ground-acknowledgement" label="What a ground acknowledgement means" />
+            </View>
           </Panel>
         </GridItem>
 
@@ -130,4 +135,5 @@ const styles = StyleSheet.create({
   explanation: { gap: spacing.xs, padding: spacing.sm, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(0, 214, 198, 0.22)', backgroundColor: 'rgba(0, 214, 198, 0.06)' },
   explanationText: { fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 18, color: colors.slate[200] },
   explanationStatus: { fontFamily: fonts.semibold, fontSize: 11, lineHeight: 16, color: colors.success[400] },
+  knowledgeLinks: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4, borderTopWidth: 1, borderTopColor: colors.navy[600], paddingTop: spacing.xs },
 });

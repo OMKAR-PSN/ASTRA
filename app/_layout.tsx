@@ -37,6 +37,8 @@ export default function RootLayout() {
         <Stack.Screen name="guided-check-in" />
         <Stack.Screen name="journey" />
         <Stack.Screen name="replay" />
+        <Stack.Screen name="knowledge" />
+        <Stack.Screen name="knowledge/[cardId]" />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="light" />

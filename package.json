@@ -19,7 +19,8 @@
     "web": "expo start --web",
     "test:replay": "node --import ./tests/register-loader.mjs --test tests/replay.test.mjs",
     "test:engagement": "node --import ./tests/register-loader.mjs --test tests/engagement.test.mjs",
-    "test:symptoms": "node --import ./tests/register-loader.mjs --test tests/symptoms.test.mjs"
+    "test:symptoms": "node --import ./tests/register-loader.mjs --test tests/symptoms.test.mjs",
+    "test:knowledge": "node --import ./tests/register-loader.mjs --test tests/knowledge.test.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",

@@ -1,4 +1,4 @@
-import { Database, Info, Orbit, ScanLine } from 'lucide-react-native';
+import { BookOpen, Database, Info, Orbit, ScanLine } from 'lucide-react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View, type ViewStyle, Platform } from 'react-native';
 
@@ -46,6 +46,24 @@ export function SideRail() {
           );
         })}
       </View>
+
+      <Pressable
+        accessibilityRole="link"
+        accessibilityLabel="Crew Knowledge Hub"
+        accessibilityHint="Opens the offline health knowledge library."
+        accessibilityState={{ selected: pathname.startsWith('/knowledge') }}
+        onPress={() => router.navigate('/knowledge')}
+        style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
+          styles.item,
+          styles.knowledgeItem,
+          pathname.startsWith('/knowledge') && styles.itemActive,
+          (hovered || pressed) && !pathname.startsWith('/knowledge') && styles.itemHover,
+        ]}
+      >
+        <BookOpen size={18} color={pathname.startsWith('/knowledge') ? colors.primary.ink : colors.slate[300]} strokeWidth={2.1} />
+        <Text style={[styles.itemLabel, pathname.startsWith('/knowledge') && styles.itemLabelActive]}>Crew Knowledge Hub</Text>
+        <Text style={[styles.knowledgeMeta, pathname.startsWith('/knowledge') && styles.knowledgeMetaActive]}>OFFLINE</Text>
+      </Pressable>
 
       <Pressable
         accessibilityRole="link"
@@ -191,6 +209,9 @@ const styles = StyleSheet.create({
     fontFamily: fonts.semibold,
     color: colors.primary.ink,
   },
+  knowledgeItem: { borderColor: 'rgba(0, 214, 198, 0.16)', marginTop: 2 },
+  knowledgeMeta: { fontFamily: fonts.mono, fontSize: 7.5, lineHeight: 11, letterSpacing: 0.5, color: colors.primary[300], marginLeft: 'auto' },
+  knowledgeMetaActive: { color: colors.primary.ink },
   footer: { marginTop: 'auto', gap: 9, paddingHorizontal: 4, paddingTop: 16 },
   storage: {
     gap: 7,

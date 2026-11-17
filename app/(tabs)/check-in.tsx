@@ -5,6 +5,7 @@ import { Activity, ClipboardList, Database, FileText, Info, Moon, ShieldCheck, S
 import type { LucideIcon } from 'lucide-react-native';
 
 import { NumericField } from '@/components/NumericField';
+import { KnowledgeLink } from '@/components/KnowledgeLink';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { ScaleSelector } from '@/components/ScaleSelector';
 import { ScreenContainer } from '@/components/ScreenContainer';
@@ -236,6 +237,7 @@ export default function CheckInScreen() {
                 error={errors.sleepHours}
                 onChangeText={(value) => updateText('sleepHours', value)}
               />
+              <KnowledgeLink cardId="sleep-duration" label="Why do we record sleep?" />
             </Section>
           </View>
 
@@ -284,6 +286,7 @@ export default function CheckInScreen() {
               noneSelected={symptomStatus === 'none'}
               onNoneSelected={reportNoSymptoms}
             />
+            <KnowledgeLink cardId="symptom-reporting" label="How symptom reporting works" />
           </Section>
 
           <Section Icon={FileText} title="Activity note" badge="OPTIONAL · 280 MAX">

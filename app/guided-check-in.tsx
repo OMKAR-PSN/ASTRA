@@ -7,6 +7,7 @@ import { AccessibilityInfo, Modal, Platform, Pressable, StyleSheet, Text, TextIn
 
 import { DurationStepper } from '@/components/DurationStepper';
 import { GuidedMoodChoices } from '@/components/GuidedMoodChoices';
+import { KnowledgeLink } from '@/components/KnowledgeLink';
 import { NumericField } from '@/components/NumericField';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { ScaleSelector } from '@/components/ScaleSelector';
@@ -534,6 +535,7 @@ export default function GuidedCheckInScreen() {
                     onClear={() => updateText('sleepHours', '')}
                   />
                   <Callout Icon={Moon}>Sleep is self-reported. No wristband or bed sensor is connected.</Callout>
+                  <KnowledgeLink cardId="sleep-duration" label="Why do we record sleep?" hint="Opens the offline knowledge card about sleep-duration records." />
                 </View>
               ) : null}
 
@@ -582,6 +584,7 @@ export default function GuidedCheckInScreen() {
                     onClear={() => updateText('temperatureC', '')}
                   />
                   <Callout Icon={Thermometer}>Manual entry only. This prototype has no live sensor feed.</Callout>
+                  <KnowledgeLink cardId="blood-pressure" label="Understanding blood-pressure readings" />
                 </View>
               ) : null}
 
@@ -642,6 +645,7 @@ export default function GuidedCheckInScreen() {
                   <Callout Icon={ShieldCheck}>
                     Symptoms are recorded without an urgency rating. If anything concerns you, follow your crew&apos;s approved mission procedures and contact the flight surgeon.
                   </Callout>
+                  <KnowledgeLink cardId="symptom-reporting" label="How symptom reporting works" />
                 </View>
               ) : null}
 

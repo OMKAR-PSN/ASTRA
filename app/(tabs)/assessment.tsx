@@ -2,12 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
-  ChartNoAxesCombined, Check, ClipboardCheck, Clock3, Database, Info, Send, ShieldCheck, TriangleAlert,
+  BookOpen, ChartNoAxesCombined, Check, ClipboardCheck, Clock3, Database, Info, Send, ShieldCheck, TriangleAlert,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 
 import { AssessmentCard } from '@/components/AssessmentCard';
 import { EmptyState } from '@/components/EmptyState';
+import { KnowledgeLink } from '@/components/KnowledgeLink';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { StatusPill } from '@/components/StatusPill';
@@ -89,6 +90,12 @@ export default function AssessmentScreen() {
           <CardHead Icon={Info} title="What this screen will show" meta="LEVELS 1–3" />
           <Text style={styles.bodyText}>Each observation gets a plain-language finding, an optional calculation showing baseline, difference, percentage, and threshold, and a bounded next step. The assessment reuses the existing deterministic engine and fictional baseline.</Text>
           <Text style={styles.metaText}>The demonstration threshold is a numerical rule, not a clinically validated medical threshold. This screen does not diagnose conditions or decide urgency.</Text>
+          <View style={styles.termLinks}>
+            <KnowledgeLink cardId="personal-baseline" label="What does baseline mean?" />
+          </View>
+          <View style={styles.linkGrid}>
+            <PrimaryButton variant="secondary" label="Crew Knowledge Hub" Icon={BookOpen} onPress={() => router.navigate('/knowledge')} style={styles.linkButton} />
+          </View>
         </Surface>
       </ScreenContainer>
     );
@@ -204,6 +211,7 @@ export default function AssessmentScreen() {
             <PrimaryButton variant="secondary" label="Health trends" Icon={ChartNoAxesCombined} onPress={() => router.navigate('/dashboard')} style={styles.linkButton} />
             <PrimaryButton variant="secondary" label="Daily check-in" Icon={ClipboardCheck} onPress={() => router.navigate('/check-in')} style={styles.linkButton} />
             <PrimaryButton variant="secondary" label="Reports & sync" Icon={Send} onPress={() => router.navigate('/delivery')} style={styles.linkButton} />
+            <PrimaryButton variant="secondary" label="Crew Knowledge Hub" Icon={BookOpen} onPress={() => router.navigate('/knowledge')} style={styles.linkButton} />
           </View>
           {observationOpen ? (
             <View style={styles.observationBox} nativeID="original-observation">
@@ -236,6 +244,10 @@ export default function AssessmentScreen() {
         <CardHead Icon={Info} title="How this assessment works" meta="EXISTING ENGINE · DEMO RULE" />
         <Text style={styles.bodyText}>{assessment.engineSummary}</Text>
         <Text style={styles.bodyText}>Rule · An absolute percentage difference of at least {assessment.thresholdPercent}% from the fictional personal baseline marks an observation for review. Percentage change = (observation − baseline) ÷ baseline × 100. A zero or missing baseline never produces a percentage.</Text>
+        <View style={styles.termLinks}>
+          <KnowledgeLink cardId="personal-baseline" label="What does baseline mean?" />
+          <KnowledgeLink cardId="percentage-difference" label="How is percentage difference calculated?" />
+        </View>
         <Text style={styles.bodyText}>Baseline provenance · {assessment.baselineSource}</Text>
         <Text style={styles.bodyText}>Record provenance · {assessment.sourceText}.</Text>
         <Text style={styles.metaText}>This assessment reuses the existing deterministic comparison engine. It does not use a language model, the internet, or free-form medical advice. It does not diagnose conditions, prescribe treatment, or determine exercise, medication, oxygen, or evacuation decisions.</Text>
@@ -342,6 +354,7 @@ const styles = StyleSheet.create({
   emergencyText: { flex: 1, fontFamily: fonts.regular, fontSize: 12, lineHeight: 18, color: colors.accent[400] },
   linkGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
   linkButton: { flexGrow: 1, flexBasis: 168 },
+  termLinks: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 },
   observationBox: {
     gap: 10,
     borderWidth: 1,

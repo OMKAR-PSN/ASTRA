@@ -10,6 +10,7 @@ import { AccessibilityInfo, Pressable, ScrollView, StyleSheet, Text, View, useWi
 
 import { AssessmentCard } from '@/components/AssessmentCard';
 import { EmptyState } from '@/components/EmptyState';
+import { KnowledgeLink } from '@/components/KnowledgeLink';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { StatusPill } from '@/components/StatusPill';
@@ -564,6 +565,7 @@ function ReplayContent() {
           {timeline.gapsOmitted ? <Text style={styles.infoLine}>The history spans more than {REPLAY_MAX_GAP_DAYS} days, so only days with recorded observations are listed; no missing-day measurements are invented.</Text> : null}
           <Text style={styles.infoLine}><Text style={styles.infoStrong}>Synthetic provenance. </Text>{activeFrame.provenance.sourceText}. {activeFrame.provenance.baselineSource}</Text>
         </View>
+        <KnowledgeLink cardId="mission-health-replay" label="Why are older readings labeled historical?" hint="Opens the offline knowledge card about read-only replay." />
       </Surface>
     </ScreenContainer>
   );

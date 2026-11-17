@@ -103,6 +103,9 @@ export function MissionHeader({ desktop }: { desktop: boolean }) {
         <Pressable accessibilityRole="link" accessibilityLabel="Identify crew member" onPress={() => router.navigate('/identify')} style={styles.expand}>
           <Text style={styles.expandLabel}>Identify crew member</Text>
         </Pressable>
+        <Pressable accessibilityRole="link" accessibilityLabel="Crew Knowledge Hub" onPress={() => router.navigate('/knowledge')} style={styles.expand}>
+          <Text style={styles.expandLabel}>Crew Knowledge Hub · offline</Text>
+        </Pressable>
         {presentation.active ? <Pressable accessibilityRole="button" onPress={presentation.exit} style={styles.expand}><Text style={styles.exitLabel}>Exit presentation demo</Text></Pressable> : null}
       </View> : null}
     </Surface>

@@ -3,6 +3,7 @@ import { buildAssessment, type Assessment, type AssessmentSource } from '@/lib/a
 import { DIFFERENCE_THRESHOLD_PERCENT, formatSigned } from '@/lib/comparison';
 import { formatTimestamp } from '@/lib/format';
 import { createReportSnapshot } from '@/lib/snapshot';
+import { symptomSummaryText } from '@/lib/symptoms';
 import type { Baseline, CheckIn, Readings, ReportRecord } from '@/types/astra';
 
 export const REPLAY_PLAYBACK_MS = 1800;
@@ -137,6 +138,9 @@ const copyCheckIn = (checkIn: CheckIn): CheckIn => ({
   ...checkIn,
   readings: { ...checkIn.readings },
   symptoms: [...checkIn.symptoms],
+  ...(checkIn.symptomEntries
+    ? { symptomEntries: checkIn.symptomEntries.map((entry) => ({ ...entry })) }
+    : {}),
 });
 
 const finiteOrNull = (value: number | null | undefined): number | null =>
@@ -255,12 +259,12 @@ function buildEvents(
     atText: recordedAtText(checkIn.recordedAt),
   });
 
-  if (checkIn.symptoms.length > 0) {
+  if (checkIn.symptoms.length > 0 || (checkIn.symptomEntries?.length ?? 0) > 0) {
     events.push({
       id: `${checkIn.id}-symptoms`,
       type: 'symptom',
       label: 'Symptoms reported',
-      detail: checkIn.symptoms.join(', '),
+      detail: symptomSummaryText(checkIn),
       at: checkIn.recordedAt,
       atText: recordedAtText(checkIn.recordedAt),
     });

@@ -14,7 +14,9 @@ import { ScreenContainer } from '@/components/ScreenContainer';
 import { StatusPill } from '@/components/StatusPill';
 import { StepProgress } from '@/components/StepProgress';
 import { Surface } from '@/components/Surface';
+import { SymptomBodyMap } from '@/components/SymptomBodyMap';
 import { SymptomChecklist } from '@/components/SymptomChecklist';
+import { SymptomSummary } from '@/components/SymptomSummary';
 import { colors, fonts, layout, radius, stitch, type as typography } from '@/constants/theme';
 import { symptomOptions } from '@/fixtures/checkInOptions';
 import { crewProfile } from '@/fixtures/crew';
@@ -23,6 +25,7 @@ import { DIFFERENCE_THRESHOLD_PERCENT } from '@/lib/comparison';
 import { deriveRoutineProgress, evaluateMilestones } from '@/lib/engagement';
 import { setFormHandoff, takeFormHandoff } from '@/lib/formHandoff';
 import { formatTimestamp } from '@/lib/format';
+import { symptomSummaryText } from '@/lib/symptoms';
 import {
   adjustSleepHours,
   guidedStepMeta,
@@ -132,6 +135,8 @@ export default function GuidedCheckInScreen() {
   const [savedRecord, setSavedRecord] = useState<CheckIn | null>(null);
   const [reviewNow, setReviewNow] = useState(() => new Date().toISOString());
   const [exitOpen, setExitOpen] = useState(false);
+  const [bodyMapOpen, setBodyMapOpen] = useState(false);
+  const [wordListHint, setWordListHint] = useState(false);
 
   const newMilestones = useMemo(() => {
     if (!savedRecord) return [];
@@ -196,8 +201,35 @@ export default function GuidedCheckInScreen() {
   };
 
   const toggleSymptoms = (next: string[]) => {
-    setValues((current) => ({ ...current, symptoms: next }));
+    setValues((current) => ({
+      ...current,
+      symptoms: next,
+      symptomStatus: next.length > 0 || current.symptomEntries.length > 0 ? 'reported' : 'not-answered',
+    }));
     clearMessages();
+  };
+
+  const updateSymptomEntries = (next: CheckInFormValues['symptomEntries']) => {
+    setValues((current) => ({
+      ...current,
+      symptomEntries: next,
+      symptomStatus: next.length > 0 || current.symptoms.length > 0
+        ? 'reported'
+        : current.symptomStatus === 'none' ? 'none' : 'not-answered',
+    }));
+    clearMessages();
+  };
+
+  const reportNoSymptoms = () => {
+    setValues((current) => ({ ...current, symptoms: [], symptomEntries: [], symptomStatus: 'none' }));
+    setWordListHint(false);
+    clearMessages();
+    AccessibilityInfo.announceForAccessibility('No symptoms reported for this check-in.');
+  };
+
+  const describeInWords = () => {
+    setWordListHint(true);
+    AccessibilityInfo.announceForAccessibility('Use the word list below to describe symptoms.');
   };
 
   const updateNote = (text: string) => {
@@ -264,7 +296,13 @@ export default function GuidedCheckInScreen() {
       return;
     }
     try {
-      const record = await saveCheckIn({ readings: result.readings, symptoms: draft.symptoms, activityNote: draft.activityNote });
+      const record = await saveCheckIn({
+        readings: result.readings,
+        symptoms: draft.symptoms,
+        symptomEntries: draft.symptomEntries,
+        symptomStatus: draft.symptomStatus,
+        activityNote: draft.activityNote,
+      });
       setErrors({});
       setSavedRecord(record);
       setPhase('saved');
@@ -336,6 +374,15 @@ export default function GuidedCheckInScreen() {
 
   const moodLabel = moodChoices.find((choice) => choice.id === moodChoice)?.label ?? 'Not answered';
   const stress = values.subjective.stress;
+  const hasSymptomInput = values.symptoms.length > 0 || values.symptomEntries.length > 0;
+  const symptomEntry: ReviewEntry = {
+    label: 'Symptoms',
+    value: hasSymptomInput
+      ? symptomSummaryText({ symptoms: values.symptoms, symptomEntries: values.symptomEntries, symptomStatus: values.symptomStatus })
+      : values.symptomStatus === 'none' ? 'No symptoms reported' : 'Not answered',
+    status: hasSymptomInput ? 'Entered' : values.symptomStatus === 'none' ? 'No symptoms reported' : 'Not answered',
+    tone: hasSymptomInput ? 'ok' : values.symptomStatus === 'none' ? 'info' : 'missing',
+  };
   const moodEntry: ReviewEntry = {
     label: 'Mood',
     value: values.subjective.mood === null ? 'Not measured' : `${values.subjective.mood} of 5`,
@@ -540,9 +587,41 @@ export default function GuidedCheckInScreen() {
 
               {phase === 'symptoms' ? (
                 <View style={styles.stepBody}>
+                  <View style={styles.bodyMapPrompt}>
+                    <Text style={styles.questionLabel}>WHERE DO YOU FEEL DISCOMFORT?</Text>
+                    <Text style={styles.bodyMapText}>
+                      Open the body map, describe symptoms with the word list, or explicitly report no symptoms. The illustration is optional.
+                    </Text>
+                    <View style={styles.symptomActionRow}>
+                      <PrimaryButton label="Open Body Map" onPress={() => setBodyMapOpen(true)} style={styles.symptomActionButton} />
+                      <PrimaryButton variant="secondary" label="Describe in Words" onPress={describeInWords} style={styles.symptomActionButton} />
+                      <PrimaryButton variant="secondary" label="No Symptoms to Report" onPress={reportNoSymptoms} style={styles.symptomActionButton} />
+                    </View>
+                    {wordListHint ? (
+                      <Text accessibilityLiveRegion="polite" style={styles.wordListHint}>The word list below is ready. Select anything that applies.</Text>
+                    ) : null}
+                    {values.symptomEntries.length > 0 ? (
+                      <View style={styles.selectedSymptoms}>
+                        <Text style={styles.questionLabel}>SELECTED ON BODY MAP</Text>
+                        <SymptomSummary
+                          symptoms={[]}
+                          entries={values.symptomEntries}
+                          status={values.symptomStatus}
+                          compact
+                        />
+                        <Text style={styles.bodyMapFootnote}>Reopen the body map to edit or remove an entry.</Text>
+                      </View>
+                    ) : null}
+                  </View>
                   <View style={styles.question}>
-                    <Text style={styles.questionLabel}>SYMPTOMS</Text>
-                    <SymptomChecklist options={symptomOptions} selected={values.symptoms} onChange={toggleSymptoms} />
+                    <Text style={styles.questionLabel}>DESCRIBE IN WORDS</Text>
+                    <SymptomChecklist
+                      options={symptomOptions}
+                      selected={values.symptoms}
+                      noneSelected={values.symptomStatus === 'none'}
+                      onChange={toggleSymptoms}
+                      onNoneSelected={reportNoSymptoms}
+                    />
                   </View>
                   <View style={styles.question}>
                     <View style={styles.noteHead}>
@@ -580,12 +659,7 @@ export default function GuidedCheckInScreen() {
                     title="Symptoms & activity"
                     step="symptoms"
                     entries={[
-                      {
-                        label: 'Symptoms',
-                        value: values.symptoms.length > 0 ? values.symptoms.join(', ') : 'None recorded',
-                        status: values.symptoms.length > 0 ? 'Entered' : 'None recorded',
-                        tone: 'info',
-                      },
+                      symptomEntry,
                       {
                         label: 'Activity context',
                         value: values.activityNote.trim() === '' ? 'Not provided' : values.activityNote.trim(),
@@ -667,6 +741,16 @@ export default function GuidedCheckInScreen() {
                   ? 'Saved in this demo session. Demo records are cleared when the session ends.'
                   : 'Saved on this device. It remains available after reload and without a network connection.'}
               </Text>
+
+              <View style={styles.savedSymptoms}>
+                <Text style={styles.savedSymptomsLabel}>SYMPTOMS · SELF-REPORTED</Text>
+                <SymptomSummary
+                  symptoms={savedRecord.symptoms}
+                  entries={savedRecord.symptomEntries}
+                  status={savedRecord.symptomStatus}
+                  showTimestamps
+                />
+              </View>
 
               <View style={styles.savedJourney}>
                 <View style={styles.savedJourneyIcon}><Sparkles size={16} color={colors.primary[300]} strokeWidth={2} /></View>
@@ -769,6 +853,14 @@ export default function GuidedCheckInScreen() {
           </View>
         </View>
       </Modal>
+
+      <SymptomBodyMap
+        visible={bodyMapOpen}
+        entries={values.symptomEntries}
+        onChange={updateSymptomEntries}
+        onClose={() => setBodyMapOpen(false)}
+        onNoSymptoms={reportNoSymptoms}
+      />
     </ScreenContainer>
   );
 }
@@ -973,6 +1065,8 @@ const styles = StyleSheet.create({
   savedJourneyTitle: { fontFamily: fonts.semibold, fontSize: 13, lineHeight: 19, color: colors.offWhite },
   savedMilestone: { fontFamily: fonts.semibold, fontSize: 12, lineHeight: 18, color: colors.success[400] },
   savedJourneyText: { ...typography.meta, fontSize: 10.5, lineHeight: 15, color: colors.slate[400] },
+  savedSymptoms: { alignSelf: 'stretch', gap: 7, padding: 12, borderRadius: radius.sm, borderWidth: 1, borderColor: stitch.glassBorder, backgroundColor: 'rgba(4, 16, 28, 0.46)' },
+  savedSymptomsLabel: { ...typography.label, color: colors.slate[400] },
   savedGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignSelf: 'stretch' },
   savedCell: {
     flexBasis: 130,
@@ -1012,6 +1106,14 @@ const styles = StyleSheet.create({
   guideIndex: { fontFamily: fonts.mono, fontSize: 10, lineHeight: 18, color: colors.primary[400], letterSpacing: 0.4 },
   guideText: { ...typography.bodySmall, color: colors.slate[300], flex: 1, minWidth: 0 },
   sideNote: { ...typography.meta, fontSize: 10, lineHeight: 15, color: colors.slate[500] },
+
+  bodyMapPrompt: { gap: 10, padding: 13, borderRadius: radius.md, borderWidth: 1, borderColor: 'rgba(0, 214, 198, 0.26)', backgroundColor: 'rgba(0, 214, 198, 0.055)' },
+  bodyMapText: { ...typography.bodySmall, color: colors.slate[300] },
+  symptomActionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  symptomActionButton: { flexBasis: 170, flexGrow: 1 },
+  wordListHint: { ...typography.meta, color: colors.primary[300] },
+  selectedSymptoms: { gap: 7 },
+  bodyMapFootnote: { ...typography.meta, color: colors.slate[500] },
 
   modalBackdrop: {
     flex: 1,

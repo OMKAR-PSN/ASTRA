@@ -129,7 +129,7 @@ test('08 symptoms come only from the existing model and are saved', async () => 
     'Tired', 'Headache', 'Muscle soreness', 'Trouble sleeping', 'Trouble concentrating', 'Dizziness', 'Nausea',
   ]);
   assert.ok(!symptomOptions.includes('Other'));
-  assert.match(source('app/guided-check-in.tsx'), /<SymptomChecklist options=\{symptomOptions\}/);
+  assert.match(source('app/guided-check-in.tsx'), /<SymptomChecklist\s+options=\{symptomOptions\}/);
 
   const repository = createCrewDemoRepository();
   const values = { ...validValues(), symptoms: ['Headache', 'Nausea'] };

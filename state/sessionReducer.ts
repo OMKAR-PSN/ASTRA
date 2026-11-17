@@ -1,5 +1,6 @@
 import { createReportSnapshot } from '@/lib/snapshot';
 import { DEFAULT_ENGAGEMENT, addEngagementEvent, setJourneyVisibility, type EngagementEventKind, type EngagementState } from '@/lib/engagement';
+import { normalizeSymptomStatus, sanitizeSymptomEntries } from '@/lib/symptoms';
 import type { CheckIn, CheckInDraft, ReportRecord } from '@/types/astra';
 
 export const RECEIVER_UNAVAILABLE_NOTE = 'Ground receiver unavailable in this prototype.';
@@ -33,6 +34,9 @@ export const formatReportId = (sequence: number) => `ASTRA-${String(sequence).pa
 export function sessionReducer(state: SessionState, action: SessionAction): SessionState {
   switch (action.type) {
     case 'saveCheckIn': {
+      const symptomEntries = action.draft.symptomEntries === undefined
+        ? undefined
+        : sanitizeSymptomEntries(action.draft.symptomEntries);
       const checkIn: CheckIn = {
         id: formatCheckInId(state.checkIns.length + 1),
         recordedAt: action.recordedAt,
@@ -40,6 +44,10 @@ export function sessionReducer(state: SessionState, action: SessionAction): Sess
         symptoms: action.draft.symptoms,
         activityNote: action.draft.activityNote,
       };
+      if (symptomEntries !== undefined) {
+        checkIn.symptomEntries = symptomEntries;
+        checkIn.symptomStatus = normalizeSymptomStatus(action.draft.symptomStatus, action.draft.symptoms, symptomEntries);
+      }
       return { ...state, checkIns: [...state.checkIns, checkIn] };
     }
 

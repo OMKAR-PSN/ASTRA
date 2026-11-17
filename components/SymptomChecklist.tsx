@@ -7,20 +7,29 @@ import { colors, fonts, radius, stitch, type as typography } from '@/constants/t
 type SymptomChecklistProps = {
   options: readonly string[];
   selected: string[];
+  /** Explicit "No symptoms to report" state. Without it, an empty list keeps the legacy behavior. */
+  noneSelected?: boolean;
   onChange: (next: string[]) => void;
+  onNoneSelected?: () => void;
 };
 
-export function SymptomChecklist({ options, selected, onChange }: SymptomChecklistProps) {
+export function SymptomChecklist({ options, selected, noneSelected, onChange, onNoneSelected }: SymptomChecklistProps) {
   const [focused, setFocused] = useState<string | null>(null);
   const toggle = (option: string) => {
-    if (option === 'None') { onChange([]); return; }
+    if (option === 'None') {
+      if (onNoneSelected) onNoneSelected();
+      else onChange([]);
+      return;
+    }
     onChange(selected.includes(option) ? selected.filter((item) => item !== option) : [...selected, option]);
   };
 
   return (
     <View style={styles.list} accessibilityRole="list">
       {['None', ...options.filter((option) => option !== 'None')].map((option) => {
-        const checked = option === 'None' ? selected.length === 0 : selected.includes(option);
+        const checked = option === 'None'
+          ? (onNoneSelected ? Boolean(noneSelected) : selected.length === 0)
+          : selected.includes(option);
         return (
           <Pressable
             key={option}

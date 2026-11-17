@@ -15,6 +15,7 @@ import { Surface } from '@/components/Surface';
 import { colors, fonts, layout, radius, stitch, type as typography } from '@/constants/theme';
 import { buildAssessment } from '@/lib/assessment';
 import { createReportSnapshot } from '@/lib/snapshot';
+import { symptomLines } from '@/lib/symptoms';
 import { usePresentation } from '@/state/PresentationSession';
 import { useSession } from '@/state/SessionProvider';
 
@@ -99,7 +100,7 @@ export default function AssessmentScreen() {
   const overallTone = review ? 'accent' : insufficient ? 'neutral' : 'primary';
   const overallIcon = review ? TriangleAlert : insufficient ? Info : Check;
   const selfReportedCount = assessment.counts.noBaseline;
-  const symptoms = latestCheckIn.symptoms.length ? latestCheckIn.symptoms.join(', ') : 'None recorded';
+  const symptomDetailLines = symptomLines(latestCheckIn);
   const activityNote = latestCheckIn.activityNote?.trim() || 'Not provided';
 
   return (
@@ -214,9 +215,11 @@ export default function AssessmentScreen() {
                     <Text style={styles.observationValue}>{finding.observedText}</Text>
                   </View>
                 ))}
-                <View style={styles.observationCell}>
+                <View style={[styles.observationCell, styles.observationCellWide]}>
                   <Text style={styles.observationLabel}>Symptoms</Text>
-                  <Text style={styles.observationValue}>{symptoms}</Text>
+                  {symptomDetailLines.map((line, index) => (
+                    <Text key={`${index}-${line}`} style={styles.observationValue}>{line}</Text>
+                  ))}
                 </View>
                 <View style={[styles.observationCell, styles.observationCellWide]}>
                   <Text style={styles.observationLabel}>Activity note</Text>

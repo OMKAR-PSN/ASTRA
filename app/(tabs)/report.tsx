@@ -15,6 +15,7 @@ import { colors, fonts, spacing } from '@/constants/theme';
 import { formatTimestamp } from '@/lib/format';
 import { buildReadingTiles } from '@/lib/readingTiles';
 import { createReportSnapshot } from '@/lib/snapshot';
+import { symptomLines } from '@/lib/symptoms';
 import { useSession } from '@/state/SessionProvider';
 
 export default function ReportPreviewScreen() {
@@ -82,9 +83,9 @@ export default function ReportPreviewScreen() {
               ))}
             </View>
             <Text style={styles.listLabel}>Symptoms</Text>
-            <Text style={styles.body}>
-              {snapshot.checkIn.symptoms.length > 0 ? snapshot.checkIn.symptoms.join(', ') : 'None selected'}
-            </Text>
+            {symptomLines(snapshot.checkIn).map((line, index) => (
+              <Text key={`${index}-${line}`} style={styles.body}>{line}</Text>
+            ))}
             <Text style={styles.listLabel}>Activity note</Text>
             <Text style={styles.body}>{snapshot.checkIn.activityNote || 'No note added'}</Text>
           </Panel>

@@ -40,7 +40,7 @@ export default function TabLayout() {
         },
       }}
     >
-      <Tabs.Screen name="report" options={{ href: null }} />
+      <Tabs.Screen name="report" options={{ tabBarButton: () => null }} />
       {navItems.map(({ routeName, label, Icon }) => (
         <Tabs.Screen
           key={routeName}

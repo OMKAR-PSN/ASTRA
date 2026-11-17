@@ -1,5 +1,6 @@
 import { emptySession, normalizeStoredSession, type SessionRepository, type StoredSession } from '@/lib/sessionRepositoryContract';
 import { addEngagementEvent, setJourneyVisibility, type EngagementEventKind, type EngagementState } from '@/lib/engagement';
+import { normalizeSymptomStatus, sanitizeSymptomEntries } from '@/lib/symptoms';
 import { createReportSnapshot } from '@/lib/snapshot';
 import type { CheckIn, ReportRecord } from '@/types/astra';
 
@@ -61,6 +62,10 @@ function createWebRepository(): SessionRepository {
             symptoms: [...draft.symptoms],
             activityNote: draft.activityNote,
           };
+          if (draft.symptomEntries !== undefined) {
+            saved.symptomEntries = sanitizeSymptomEntries(draft.symptomEntries);
+            saved.symptomStatus = normalizeSymptomStatus(draft.symptomStatus, saved.symptoms, saved.symptomEntries);
+          }
           store.put({ ...data, checkIns: [...data.checkIns, saved] }, 'data');
         };
         transaction.oncomplete = () => { db.close(); resolve(saved); };

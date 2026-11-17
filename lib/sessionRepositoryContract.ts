@@ -4,6 +4,7 @@ import {
   type EngagementEventKind,
   type EngagementState,
 } from '@/lib/engagement';
+import { normalizeCheckInSymptoms } from '@/lib/symptoms';
 import type { CheckIn, CheckInDraft, ReportRecord } from '@/types/astra';
 
 export type StoredSession = {
@@ -31,7 +32,7 @@ export const emptySession = (): StoredSession => ({
 
 export function normalizeStoredSession(value: Partial<StoredSession> | null | undefined): StoredSession {
   return {
-    checkIns: Array.isArray(value?.checkIns) ? value.checkIns : [],
+    checkIns: Array.isArray(value?.checkIns) ? value.checkIns.map(normalizeCheckInSymptoms) : [],
     reports: Array.isArray(value?.reports) ? value.reports : [],
     engagement: normalizeEngagement(value?.engagement),
   };

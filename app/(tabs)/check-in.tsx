@@ -10,7 +10,9 @@ import { ScaleSelector } from '@/components/ScaleSelector';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { StatusPill } from '@/components/StatusPill';
 import { Surface } from '@/components/Surface';
+import { SymptomBodyMap } from '@/components/SymptomBodyMap';
 import { SymptomChecklist } from '@/components/SymptomChecklist';
+import { SymptomSummary } from '@/components/SymptomSummary';
 import { colors, fonts, layout, radius, stitch, type as typography } from '@/constants/theme';
 import { demoReadings, symptomOptions } from '@/fixtures/checkInOptions';
 import { crewProfile } from '@/fixtures/crew';
@@ -21,7 +23,7 @@ import { formatTimestamp } from '@/lib/format';
 import { setFormHandoff, takeFormHandoff } from '@/lib/formHandoff';
 import { validateDraft, type DraftErrors } from '@/lib/validation';
 import { useSession } from '@/state/SessionProvider';
-import type { Readings } from '@/types/astra';
+import type { Readings, SymptomEntry, SymptomStatus } from '@/types/astra';
 
 const guidance = [
   'Manual entries only — this prototype has no live sensor feed.',
@@ -54,6 +56,9 @@ export default function CheckInScreen() {
   const [texts, setTexts] = useState<NumericTexts>(() => ({ ...emptyNumericTexts }));
   const [scales, setScales] = useState<Pick<Readings, 'mood' | 'stress'>>(() => ({ ...emptySubjective }));
   const [symptoms, setSymptoms] = useState<string[]>([]);
+  const [symptomEntries, setSymptomEntries] = useState<SymptomEntry[]>([]);
+  const [symptomStatus, setSymptomStatus] = useState<SymptomStatus>('not-answered');
+  const [bodyMapOpen, setBodyMapOpen] = useState(false);
   const [activityNote, setActivityNote] = useState('');
   const [errors, setErrors] = useState<DraftErrors>({});
   const [saved, setSaved] = useState(false);
@@ -75,6 +80,8 @@ export default function CheckInScreen() {
     setTexts(handoff.texts);
     setScales(handoff.subjective);
     setSymptoms(handoff.symptoms);
+    setSymptomEntries(handoff.symptomEntries);
+    setSymptomStatus(handoff.symptomStatus);
     setActivityNote(handoff.activityNote);
     setErrors({});
     setSaved(false);
@@ -91,13 +98,36 @@ export default function CheckInScreen() {
     setTexts(textsFrom(demoReadings));
     setScales({ mood: demoReadings.mood, stress: demoReadings.stress });
     setSymptoms(['Trouble sleeping']);
+    setSymptomEntries([]);
+    setSymptomStatus('reported');
     setActivityNote('Light walk in the habitat corridor');
     setErrors({});
     setSaved(false);
   };
 
+  const updateSymptoms = (next: string[]) => {
+    setSymptoms(next);
+    setSymptomStatus(next.length > 0 || symptomEntries.length > 0 ? 'reported' : 'not-answered');
+    setSaved(false);
+  };
+
+  const updateSymptomEntries = (next: SymptomEntry[]) => {
+    setSymptomEntries(next);
+    setSymptomStatus(next.length > 0 || symptoms.length > 0
+      ? 'reported'
+      : symptomStatus === 'none' ? 'none' : 'not-answered');
+    setSaved(false);
+  };
+
+  const reportNoSymptoms = () => {
+    setSymptoms([]);
+    setSymptomEntries([]);
+    setSymptomStatus('none');
+    setSaved(false);
+  };
+
   const save = async () => {
-    const draft = draftFromForm({ texts, subjective: scales, symptoms, activityNote });
+    const draft = draftFromForm({ texts, subjective: scales, symptoms, symptomEntries, symptomStatus, activityNote });
     const result = validateDraft(draft, texts);
     if (!result.ok) {
       setErrors(result.errors);
@@ -108,7 +138,13 @@ export default function CheckInScreen() {
     setSaveError(null);
     setSaving(true);
     try {
-      await saveCheckIn({ readings: result.readings, symptoms: draft.symptoms, activityNote: draft.activityNote });
+      await saveCheckIn({
+        readings: result.readings,
+        symptoms: draft.symptoms,
+        symptomEntries: draft.symptomEntries,
+        symptomStatus: draft.symptomStatus,
+        activityNote: draft.activityNote,
+      });
       setSavedAt(new Date().toISOString().slice(11, 16));
       setSaved(true);
     } catch {
@@ -120,7 +156,7 @@ export default function CheckInScreen() {
   };
 
   const openGuided = () => {
-    setFormHandoff({ texts, subjective: scales, symptoms, activityNote });
+    setFormHandoff({ texts, subjective: scales, symptoms, symptomEntries, symptomStatus, activityNote });
     router.push('/guided-check-in');
   };
 
@@ -228,15 +264,25 @@ export default function CheckInScreen() {
             </View>
           </Section>
 
-          <Section Icon={ClipboardList} title="Symptoms" badge="SELECT ANY">
-            <Text style={styles.hint}>Select symptoms or choose None.</Text>
+          <Section Icon={ClipboardList} title="Symptoms" badge="SELF-REPORTED · OPTIONAL">
+            <Text style={styles.hint}>Describe what you notice on the body map, select words below, or choose None. This is not a diagnosis.</Text>
+            <PrimaryButton
+              variant="secondary"
+              label={symptomEntries.length > 0 ? 'Edit Symptoms on Body Map' : 'Describe Symptoms on Body Map'}
+              onPress={() => setBodyMapOpen(true)}
+            />
+            {symptomEntries.length > 0 ? (
+              <View style={styles.selectedSymptoms}>
+                <Text style={styles.selectedSymptomsLabel}>SELECTED ON BODY MAP</Text>
+                <SymptomSummary symptoms={[]} entries={symptomEntries} status="reported" />
+              </View>
+            ) : null}
             <SymptomChecklist
               options={symptomOptions}
               selected={symptoms}
-              onChange={(next) => {
-                setSymptoms(next);
-                setSaved(false);
-              }}
+              onChange={updateSymptoms}
+              noneSelected={symptomStatus === 'none'}
+              onNoneSelected={reportNoSymptoms}
             />
           </Section>
 
@@ -333,6 +379,14 @@ export default function CheckInScreen() {
           </Surface>
         </View>
       </View>
+
+      <SymptomBodyMap
+        visible={bodyMapOpen}
+        entries={symptomEntries}
+        onChange={updateSymptomEntries}
+        onClose={() => setBodyMapOpen(false)}
+        onNoSymptoms={reportNoSymptoms}
+      />
     </ScreenContainer>
   );
 }
@@ -397,6 +451,8 @@ const styles = StyleSheet.create({
   badge: { fontFamily: fonts.mono, fontSize: 8, lineHeight: 12, letterSpacing: 0.7, color: colors.slate[500] },
 
   hint: { ...typography.meta, color: colors.slate[500] },
+  selectedSymptoms: { gap: 7, padding: 12, borderRadius: radius.sm, borderWidth: 1, borderColor: stitch.glassBorder, backgroundColor: 'rgba(4, 16, 28, 0.46)' },
+  selectedSymptomsLabel: { ...typography.label, color: colors.slate[400] },
   note: {
     minHeight: 108,
     padding: 12,

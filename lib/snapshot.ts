@@ -12,6 +12,9 @@ export function createReportSnapshot(checkIn: CheckIn): ReportSnapshot {
       ...checkIn,
       readings: { ...checkIn.readings },
       symptoms: [...checkIn.symptoms],
+      ...(checkIn.symptomEntries
+        ? { symptomEntries: checkIn.symptomEntries.map((entry) => ({ ...entry })) }
+        : {}),
     },
     comparisons,
     explanation: buildExplanation(comparisons),

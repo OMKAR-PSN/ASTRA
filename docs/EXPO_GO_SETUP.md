@@ -1,11 +1,11 @@
 # Run ASTRA CARE in Expo Go (SDK 58)
 
-Open C:/Users/Omkar/Desktop/NASA_Space_App_Challenge_26 in VS Code. Use Terminal > New Terminal and select PowerShell.
+Open the ASTRA repository root in VS Code. Use Terminal > New Terminal and select PowerShell.
 
 ## Install and launch
 
 ```powershell
-Set-Location "C:\Users\Omkar\Desktop\NASA_Space_App_Challenge_26"
+Set-Location "<path-to-ASTRA-repo>"
 npm.cmd ci
 npx.cmd expo install --check
 npm.cmd run start:phone

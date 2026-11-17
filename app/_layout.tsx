@@ -6,6 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 
 import { PresentationSession } from '@/state/PresentationSession';
+import { VoiceGuidanceProvider } from '@/state/VoiceGuidanceProvider';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 
 SplashScreen.preventAutoHideAsync();
@@ -31,17 +32,20 @@ export default function RootLayout() {
 
   return (
     <PresentationSession>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="identify" />
-        <Stack.Screen name="guided-check-in" />
-        <Stack.Screen name="journey" />
-        <Stack.Screen name="replay" />
-        <Stack.Screen name="knowledge" />
-        <Stack.Screen name="knowledge/[cardId]" />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="light" />
+      <VoiceGuidanceProvider>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="identify" />
+          <Stack.Screen name="guided-check-in" />
+          <Stack.Screen name="journey" />
+          <Stack.Screen name="replay" />
+          <Stack.Screen name="knowledge" />
+          <Stack.Screen name="knowledge/[cardId]" />
+          <Stack.Screen name="voice-settings" />
+          <Stack.Screen name="+not-found" />
+        </Stack>
+        <StatusBar style="light" />
+      </VoiceGuidanceProvider>
     </PresentationSession>
   );
 }

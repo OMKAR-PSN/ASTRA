@@ -1,6 +1,6 @@
 import { ArrowLeft, BookOpen, ChevronDown, ChevronUp, ExternalLink, Info, ShieldCheck } from 'lucide-react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions, type TextStyle, type ViewStyle } from 'react-native';
 
 import { EmptyState } from '@/components/EmptyState';
@@ -9,6 +9,7 @@ import { KnowledgeDiagram } from '@/components/KnowledgeDiagram';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { Surface } from '@/components/Surface';
+import { VoiceControls } from '@/components/VoiceControls';
 import { colors, fonts, layout, radius, stitch, type as typography } from '@/constants/theme';
 import {
   cardReferences,
@@ -18,6 +19,8 @@ import {
   KNOWLEDGE_HUB_PATH,
   relatedKnowledgeCards,
 } from '@/lib/knowledge';
+import { buildKnowledgeRequest } from '@/lib/voice/builders';
+import { useVoiceGuidance } from '@/state/VoiceGuidanceProvider';
 
 export default function KnowledgeCardScreen() {
   const router = useRouter();
@@ -28,6 +31,13 @@ export default function KnowledgeCardScreen() {
   const card = getKnowledgeCard(rawId);
   const [learnMoreOpen, setLearnMoreOpen] = useState(false);
   const [focusedToggle, setFocusedToggle] = useState(false);
+  const { stopScope } = useVoiceGuidance();
+  const voiceCardId = card?.id;
+
+  useEffect(() => {
+    stopScope('knowledge-card');
+    return () => stopScope('knowledge-card');
+  }, [voiceCardId, stopScope]);
 
   const goHub = () => router.navigate(KNOWLEDGE_HUB_PATH);
 
@@ -69,6 +79,11 @@ export default function KnowledgeCardScreen() {
           <Surface variant="glass" tone="panel" style={styles.quickAnswer}>
             <Text style={styles.quickLabel}>QUICK ANSWER</Text>
             <Text style={styles.quickText}>{card.summary}</Text>
+            <VoiceControls
+              request={buildKnowledgeRequest(card, 'quick')}
+              scope="knowledge-card"
+              listenLabel="Read quick answer"
+            />
           </Surface>
 
           {card.diagram ? <KnowledgeDiagram variant={card.diagram} /> : null}
@@ -82,6 +97,11 @@ export default function KnowledgeCardScreen() {
                 <Text style={styles.exampleText}>{card.example}</Text>
               </View>
             ) : null}
+            <VoiceControls
+              request={buildKnowledgeRequest(card, 'simple')}
+              scope="knowledge-card"
+              listenLabel="Read simple explanation"
+            />
           </View>
 
           <Surface variant="glass" tone="panel" style={styles.learnPanel}>
@@ -105,6 +125,11 @@ export default function KnowledgeCardScreen() {
               <View style={styles.learnBody}>
                 <Text style={styles.body}>{card.extendedExplanation}</Text>
                 <Text style={styles.limitation}>This card is educational context. It does not establish a cause, a diagnosis or an individual medical decision.</Text>
+                <VoiceControls
+                  request={buildKnowledgeRequest(card, 'expanded')}
+                  scope="knowledge-card"
+                  listenLabel="Read learn more"
+                />
               </View>
             ) : (
               <Text style={styles.learnHint}>Optional detail, limitations and how ASTRA CARE uses the concept.</Text>

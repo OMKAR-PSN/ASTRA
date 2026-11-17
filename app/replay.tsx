@@ -16,6 +16,7 @@ import { ScreenContainer } from '@/components/ScreenContainer';
 import { StatusPill } from '@/components/StatusPill';
 import { Surface } from '@/components/Surface';
 import { TrendBars } from '@/components/TrendBars';
+import { VoiceControls } from '@/components/VoiceControls';
 import { colors, fonts, layout, radius, stitch, type as typography } from '@/constants/theme';
 import { crewProfile, syntheticBaseline } from '@/fixtures/crew';
 import {
@@ -24,6 +25,8 @@ import {
 } from '@/lib/replay';
 import { usePresentation } from '@/state/PresentationSession';
 import { useSession } from '@/state/SessionProvider';
+import { useVoiceGuidance } from '@/state/VoiceGuidanceProvider';
+import { buildReplaySummaryRequest } from '@/lib/voice/builders';
 import { symptomLines } from '@/lib/symptoms';
 import type { Readings } from '@/types/astra';
 
@@ -111,6 +114,7 @@ function ReplayContent() {
   const [storyIndex, setStoryIndex] = useState(0);
   const timelineScrollRef = useRef<ScrollViewInstance | null>(null);
   const dayOffsets = useRef<Record<string, number>>({});
+  const { stopScope } = useVoiceGuidance();
 
   const timeline: ReplayTimeline = useMemo(
     () => buildReplayTimeline({
@@ -138,7 +142,16 @@ function ReplayContent() {
     return () => { current = false; subscription.remove(); };
   }, []);
 
-  useFocusEffect(useCallback(() => () => setPlaying(false), []));
+  useFocusEffect(useCallback(() => () => {
+    setPlaying(false);
+    stopScope('replay');
+  }, [stopScope]));
+
+  useEffect(() => {
+    stopScope('replay');
+  }, [activeFrame?.id, stopScope]);
+
+  useEffect(() => () => stopScope('replay'), [stopScope]);
 
   useEffect(() => {
     if (!activeFrame?.dateKey) return;
@@ -168,6 +181,7 @@ function ReplayContent() {
     if (frames.length < 2) return;
     if (playing) {
       setPlaying(false);
+      stopScope('replay');
       return;
     }
     void recordEngagement('replay-explored');
@@ -281,6 +295,14 @@ function ReplayContent() {
           <StatusPill label={reviewLabel} tone={reviewTone} Icon={reviewIcon} />
         </View>
         <Text style={styles.cutoffInline}>{activeFrame.cutoffNote}</Text>
+
+        <VoiceControls
+          request={buildReplaySummaryRequest(activeFrame)}
+          scope="replay"
+          listenLabel="Read historical summary"
+          detail="full"
+          onListen={() => setPlaying(false)}
+        />
 
         <ScrollView
           ref={timelineScrollRef}
@@ -495,6 +517,8 @@ function ReplayContent() {
               key={finding.key}
               finding={finding}
               thresholdPercent={activeFrame.assessment.thresholdPercent}
+              voiceScope="replay"
+              speechNextStep={activeFrame.assessment.nextSteps[0]}
               onCalculationOpen={() => { void recordEngagement('calculation-opened'); }}
             />
           ))}

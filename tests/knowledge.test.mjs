@@ -275,7 +275,7 @@ test('15 knowledge import leaves the report queue unchanged', () => {
   assert.equal(snapshot.checkIn.readings.heartRateBpm, 81);
   for (const source of knowledgeSourceFiles()) {
     assert.ok(!/sessionRepository|presentationRepository|buildAssessment|submitReport/.test(source));
-    assert.ok(!/from '@\/state\//.test(source));
+    assert.ok(!/from '@\/state\/(SessionProvider|PresentationSession)/.test(source));
   }
 });
 

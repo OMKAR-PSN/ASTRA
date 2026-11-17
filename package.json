@@ -20,7 +20,8 @@
     "test:replay": "node --import ./tests/register-loader.mjs --test tests/replay.test.mjs",
     "test:engagement": "node --import ./tests/register-loader.mjs --test tests/engagement.test.mjs",
     "test:symptoms": "node --import ./tests/register-loader.mjs --test tests/symptoms.test.mjs",
-    "test:knowledge": "node --import ./tests/register-loader.mjs --test tests/knowledge.test.mjs"
+    "test:knowledge": "node --import ./tests/register-loader.mjs --test tests/knowledge.test.mjs",
+    "test:voice": "node --import ./tests/register-loader.mjs --test tests/voice.test.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
@@ -40,6 +41,7 @@
     "expo-linear-gradient": "~58.0.4",
     "expo-linking": "~58.0.17",
     "expo-router": "~58.0.31",
+    "expo-speech": "~58.0.4",
     "expo-splash-screen": "~58.0.14",
     "expo-sqlite": "~58.0.17",
     "expo-status-bar": "~58.0.5",

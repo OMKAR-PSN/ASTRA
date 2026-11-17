@@ -13,10 +13,12 @@ import { PrimaryButton } from '@/components/PrimaryButton';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { StatusPill } from '@/components/StatusPill';
 import { Surface } from '@/components/Surface';
+import { VoiceControls } from '@/components/VoiceControls';
 import { colors, fonts, layout, radius, stitch, type as typography } from '@/constants/theme';
 import { buildAssessment } from '@/lib/assessment';
 import { createReportSnapshot } from '@/lib/snapshot';
 import { symptomLines } from '@/lib/symptoms';
+import { buildAssessmentOverviewRequest } from '@/lib/voice/builders';
 import { usePresentation } from '@/state/PresentationSession';
 import { useSession } from '@/state/SessionProvider';
 
@@ -126,6 +128,13 @@ export default function AssessmentScreen() {
         <Text style={styles.overviewTitle}>{assessment.summaryTitle}</Text>
         <Text style={styles.bodyText}>{assessment.summaryBody}</Text>
 
+        <VoiceControls
+          request={buildAssessmentOverviewRequest(assessment)}
+          scope="assessment"
+          listenLabel="Listen to explanation"
+          detail="full"
+        />
+
         <View style={styles.countStrip}>
           <View style={styles.countBlock}>
             <Text style={styles.countLabel}>Flagged for review</Text>
@@ -173,6 +182,7 @@ export default function AssessmentScreen() {
             key={`${assessment.checkInId}-${finding.key}`}
             finding={finding}
             thresholdPercent={assessment.thresholdPercent}
+            speechNextStep={assessment.nextSteps[0]}
             onCalculationOpen={() => { void recordEngagement('calculation-opened'); }}
           />
         ))}

@@ -9,8 +9,11 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ComparisonBar } from '@/components/ComparisonBar';
 import { StatusPill } from '@/components/StatusPill';
 import { Surface } from '@/components/Surface';
+import { VoiceControls } from '@/components/VoiceControls';
 import { colors, fonts, radius, stitch, type } from '@/constants/theme';
 import type { AssessmentFinding, AssessmentStatus } from '@/lib/assessment';
+import { buildCalculationRequest, buildFindingExplanationRequest } from '@/lib/voice/builders';
+import { useVoiceGuidance } from '@/state/VoiceGuidanceProvider';
 import type { Readings } from '@/types/astra';
 
 const metricIcon: Record<keyof Readings, LucideIcon> = {
@@ -34,10 +37,19 @@ type AssessmentCardProps = {
   finding: AssessmentFinding;
   thresholdPercent: number;
   onCalculationOpen?: () => void;
+  voiceScope?: string;
+  speechNextStep?: string;
 };
 
-export function AssessmentCard({ finding, thresholdPercent, onCalculationOpen }: AssessmentCardProps) {
+export function AssessmentCard({
+  finding,
+  thresholdPercent,
+  onCalculationOpen,
+  voiceScope = 'assessment',
+  speechNextStep,
+}: AssessmentCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const { snapshot, stopScope } = useVoiceGuidance();
   const review = finding.status === 'review';
   const missing = finding.status === 'missing';
   const MetricIcon = metricIcon[finding.key];
@@ -91,6 +103,12 @@ export function AssessmentCard({ finding, thresholdPercent, onCalculationOpen }:
         <Text style={styles.headline}>{finding.headline}</Text>
         <Text style={styles.note}>{finding.note}</Text>
 
+        <VoiceControls
+          request={buildFindingExplanationRequest(finding, speechNextStep)}
+          scope={voiceScope}
+          listenLabel="Listen to explanation"
+        />
+
         {finding.staleNote ? (
           <View style={styles.staleRow}>
             <Clock3 size={13} color={colors.accent[400]} strokeWidth={2} />
@@ -107,6 +125,7 @@ export function AssessmentCard({ finding, thresholdPercent, onCalculationOpen }:
           nativeID={`calculation-toggle-${finding.key}`}
           onPress={() => {
             const next = !expanded;
+            if (!next && snapshot.activeSourceId === `calculation-${finding.key}`) stopScope(voiceScope);
             setExpanded(next);
             if (next) onCalculationOpen?.();
           }}
@@ -127,6 +146,11 @@ export function AssessmentCard({ finding, thresholdPercent, onCalculationOpen }:
 
       {expanded ? (
         <View style={styles.calculation} nativeID={`calculation-${finding.key}`}>
+          <VoiceControls
+            request={buildCalculationRequest(finding, thresholdPercent)}
+            scope={voiceScope}
+            listenLabel="Read calculation"
+          />
           {finding.hasBar && finding.observed !== null && finding.baseline !== null ? (
             <ComparisonBar
               baseline={finding.baseline}

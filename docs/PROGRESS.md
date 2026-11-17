@@ -46,6 +46,16 @@ Target repository: OMKAR-PSN/ASTRA, main branch. Source history originates from 
 - Content maintenance, reference review, retirement and contextual-link validation are documented in KNOWLEDGE_CONTENT_VERSIONING.md. The catalog contains no diagnosis, dosage, emergency-treatment or invented clinical-threshold content.
 - Verification: 20 knowledge unit tests plus the 119 prior tests pass; typecheck, lint, production web export and the 41-check desktop/mobile browser harness pass. Physical Expo Go verification remains outstanding.
 
+## Voice guidance and accessible reading (Feature 07)
+
+- Optional, user-triggered speech built on `expo-speech` only. Nothing is read automatically; every spoken instruction also stays on screen, and all controls, answers and saving work without audio.
+- One global controller owns playback, splits text into speech-friendly chunks, blocks overlapping utterances, ignores stale engine callbacks and stops speech on navigation, crew change, backgrounding and scope changes.
+- Controls: Listen, Stop, Replay, Slow/Normal/Fast, voice on/off and Settings. Pause/Resume is intentionally absent because Android cannot support it reliably.
+- Coverage: guided steps, assessment overview and per-observation explanation, expanded calculations, knowledge card sections, body-map instructions and the replay summary. Knowledge citations are never read; private notes are never spoken.
+- Preferences `{enabled, rate, voiceId}` persist locally only and are never sent to the receiver. There is no microphone permission, recording, cloud TTS or AI voice.
+- Offline speech is not guaranteed. When the engine or a voice is unavailable, a visible notice appears and the text-only interface remains complete.
+- Verification: 18 voice unit tests plus the 139 prior tests pass; typecheck, lint, production web export and a 53-check desktop/mobile browser harness pass. Harness speech is stubbed, so audible output, silent-mode behaviour and screen-reader interaction still need manual/physical verification. See VOICE_GUIDANCE_IMPLEMENTATION.md.
+
 The audit and source references are in UI_UX_AUDIT.md. The layout is NASA-inspired, without a certification claim.
 
 ## Verification evidence
@@ -102,8 +112,9 @@ Crew web and mobile: record observations, review history/explanations, confirm r
 - Reusable UI: MetricTile.tsx, TrendBars.tsx, BodyMap.tsx (new), OutboxItem.tsx, NumericField.tsx, SymptomChecklist.tsx and shared action controls.
 - Persistence/delivery: state/SessionProvider.tsx, lib/sessionRepository.web.ts, lib/sessionRepository.native.ts, lib/sessionRepositoryContract.ts, lib/receiver.ts, lib/reportProtocol.ts, ground-receiver/.
 - Knowledge Hub: app/knowledge.tsx, app/knowledge/[cardId].tsx, components/KnowledgeLink.tsx, KnowledgeCardTile.tsx, KnowledgeDiagram.tsx, lib/knowledge/.
+- Voice guidance: lib/voice/, state/VoiceGuidanceProvider.tsx, components/VoiceControls.tsx, app/voice-settings.tsx.
 - Supporting logic/build: lib/format.ts, lib/comparison.ts, lib/readingTiles.ts, lib/checkInStreak.ts, scripts/build-web-cache.mjs, package.json, app.json.
-- Documentation: README.md, docs/decisions.md, docs/UI_UX_AUDIT.md, docs/KNOWLEDGE_CONTENT_SOURCES.md, docs/KNOWLEDGE_CONTENT_VERSIONING.md and this progress report.
+- Documentation: README.md, docs/decisions.md, docs/UI_UX_AUDIT.md, docs/KNOWLEDGE_CONTENT_SOURCES.md, docs/KNOWLEDGE_CONTENT_VERSIONING.md, docs/VOICE_GUIDANCE_IMPLEMENTATION.md and this progress report.
 
 ## Stitch design integration
 

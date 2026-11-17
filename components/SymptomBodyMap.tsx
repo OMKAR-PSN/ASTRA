@@ -24,8 +24,10 @@ import {
 import Svg, { Circle, Ellipse, Path, Rect } from 'react-native-svg';
 
 import { PrimaryButton } from '@/components/PrimaryButton';
+import { VoiceControls } from '@/components/VoiceControls';
 import { DIFFERENCE_THRESHOLD_PERCENT } from '@/lib/comparison';
 import { formatTimestamp } from '@/lib/format';
+import { buildBodyMapRequest } from '@/lib/voice/builders';
 import {
   INTENSITY_LEVELS,
   SYMPTOM_NOTE_MAX,
@@ -42,6 +44,7 @@ import {
 } from '@/lib/symptoms';
 import { svgPress } from '@/lib/svgPress';
 import { colors, fonts, radius, stitch, type as typography } from '@/constants/theme';
+import { useVoiceGuidance } from '@/state/VoiceGuidanceProvider';
 import type {
   SymptomBodySide,
   SymptomBodyView,
@@ -164,6 +167,12 @@ export function SymptomBodyMap({ visible, entries: rawEntries, onChange, onClose
     setMessage(text);
     AccessibilityInfo.announceForAccessibility(text);
   };
+  const { stopScope } = useVoiceGuidance();
+
+  useEffect(() => {
+    if (!visible) stopScope('body-map');
+    return () => stopScope('body-map');
+  }, [visible, stopScope]);
 
   const resetEditor = () => {
     setTarget(null);
@@ -341,6 +350,12 @@ export function SymptomBodyMap({ visible, entries: rawEntries, onChange, onClose
               <Text style={styles.eyebrow}>SELF-REPORTED SYMPTOMS</Text>
               <Text accessibilityRole="header" style={styles.title}>Where do you feel discomfort?</Text>
               <Text style={styles.subtitle}>Select a body area or use the word list. This is a record of what you feel, not a diagnosis.</Text>
+              <VoiceControls
+                request={buildBodyMapRequest('region')}
+                scope="body-map"
+                listenLabel="Listen to instructions"
+                style={styles.voiceStrip}
+              />
             </View>
             <Pressable
               accessibilityRole="button"
@@ -497,6 +512,11 @@ export function SymptomBodyMap({ visible, entries: rawEntries, onChange, onClose
                     </View>
 
                     <Text style={styles.question}>What are you feeling here?</Text>
+                    <VoiceControls
+                      request={buildBodyMapRequest('symptom')}
+                      scope="body-map"
+                      listenLabel="Listen to symptom guidance"
+                    />
                     <View style={styles.typeGrid} accessibilityRole="radiogroup">
                       {SYMPTOM_TYPE_DEFINITIONS.map((type) => {
                         const selected = symptomType === type.id;
@@ -535,6 +555,11 @@ export function SymptomBodyMap({ visible, entries: rawEntries, onChange, onClose
 
                     <Text style={styles.fieldLabel}>How noticeable is it? · optional</Text>
                     <Text style={styles.help}>This describes how noticeable the discomfort feels to you. It is not a clinical pain scale.</Text>
+                    <VoiceControls
+                      request={buildBodyMapRequest('intensity')}
+                      scope="body-map"
+                      listenLabel="Listen to intensity guidance"
+                    />
                     <View style={styles.intensityGrid} accessibilityRole="radiogroup">
                       {INTENSITY_LEVELS.map((level) => {
                         const selected = intensity === level.value;
@@ -729,6 +754,7 @@ const styles = StyleSheet.create({
   liveRegion: { minHeight: 18 },
   liveText: { ...typography.meta, color: colors.primary[300] },
   editor: { gap: 10, padding: 14, borderRadius: radius.md, borderWidth: 1, borderColor: 'rgba(0, 214, 198, 0.30)', backgroundColor: 'rgba(4, 18, 31, 0.72)' },
+  voiceStrip: { marginTop: 6 },
   editorHead: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 },
   editorCopy: { flex: 1, minWidth: 0, gap: 2 },
   editorEyebrow: { ...typography.label, color: colors.primary[300] },

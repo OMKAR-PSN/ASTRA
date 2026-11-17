@@ -18,6 +18,7 @@ import { Surface } from '@/components/Surface';
 import { SymptomBodyMap } from '@/components/SymptomBodyMap';
 import { SymptomChecklist } from '@/components/SymptomChecklist';
 import { SymptomSummary } from '@/components/SymptomSummary';
+import { VoiceControls } from '@/components/VoiceControls';
 import { colors, fonts, layout, radius, stitch, type as typography } from '@/constants/theme';
 import { symptomOptions } from '@/fixtures/checkInOptions';
 import { crewProfile } from '@/fixtures/crew';
@@ -40,8 +41,10 @@ import {
   type MoodChoiceId,
 } from '@/lib/guidedCheckIn';
 import { parseNumericReadings, validateDraft, type DraftErrors } from '@/lib/validation';
+import { buildGuidedStepRequest } from '@/lib/voice/builders';
 import { usePresentation } from '@/state/PresentationSession';
 import { useSession } from '@/state/SessionProvider';
+import { useVoiceGuidance } from '@/state/VoiceGuidanceProvider';
 import type { CheckIn } from '@/types/astra';
 
 type Phase = 'welcome' | GuidedStepId | 'saved';
@@ -350,6 +353,13 @@ export default function GuidedCheckInScreen() {
   const stepIndex = phase !== 'welcome' && phase !== 'saved' ? guidedStepOrder.indexOf(phase) : -1;
   const meta = stepIndex >= 0 ? guidedStepMeta[guidedStepOrder[stepIndex]] : null;
   const StepIcon = stepIndex >= 0 ? stepIcons[guidedStepOrder[stepIndex]] : null;
+  const { stopScope } = useVoiceGuidance();
+
+  useEffect(() => {
+    stopScope('guided');
+  }, [phase, stopScope]);
+
+  useEffect(() => () => stopScope('guided'), [stopScope]);
 
   const liveNumericErrors = parseNumericReadings(values.texts).errors;
   const hasAnyReading = values.subjective.mood !== null
@@ -489,6 +499,13 @@ export default function GuidedCheckInScreen() {
                   <Text style={styles.stepIntro}>{stepIntros[guidedStepOrder[stepIndex]]}</Text>
                 </View>
               </View>
+
+              <VoiceControls
+                request={buildGuidedStepRequest(guidedStepOrder[stepIndex])}
+                scope="guided"
+                listenLabel="Listen to question"
+                detail="full"
+              />
 
               {stepMessage ? <Text accessibilityRole="alert" style={styles.alert}>{stepMessage}</Text> : null}
               {saveError && phase === 'review' ? <Text accessibilityRole="alert" style={styles.alert}>{saveError}</Text> : null}

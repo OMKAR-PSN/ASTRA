@@ -35,6 +35,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="identify" />
         <Stack.Screen name="guided-check-in" />
+        <Stack.Screen name="replay" />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="light" />

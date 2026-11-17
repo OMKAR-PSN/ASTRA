@@ -209,6 +209,9 @@ export default function MissionHomeScreen() {
             <Pressable accessibilityRole="link" onPress={() => router.navigate('/dashboard')} style={styles.link}>
               <Text style={styles.cyan}>View trends</Text><ArrowUpRight size={15} color={colors.primary[300]} />
             </Pressable>
+            <Pressable accessibilityRole="link" onPress={() => router.navigate('/replay')} style={styles.link}>
+              <Text style={styles.cyan}>Open replay</Text><ArrowUpRight size={15} color={colors.primary[300]} />
+            </Pressable>
           </View>
           <Text style={styles.cardMeta}>Recorded observations against your synthetic baseline. No live sensor feed.</Text>
           <TrendBars hideHeading title="Heart rate" unit="bpm" decimals={0} baseline={syntheticBaseline.heartRateBpm} checkIns={checkIns} read={(item) => item.readings.heartRateBpm} />

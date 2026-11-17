@@ -16,6 +16,9 @@ type TrendBarsProps = {
   checkIns: CheckIn[];
   read: (checkIn: CheckIn) => number | null;
   hideHeading?: boolean;
+  selectionId?: string;
+  onSelect?: (checkInId: string) => void;
+  accessibilitySummary?: string;
 };
 
 const CHART_HEIGHT = 228;
@@ -23,9 +26,14 @@ const TOOLTIP_WIDTH = 154;
 
 const hasValue = (value: number | null | undefined): value is number => value != null && Number.isFinite(value);
 
-export function TrendBars({ title, unit, decimals, baseline, checkIns, read, hideHeading = false }: TrendBarsProps) {
-  const [selection, setSelection] = useState<string | null>(null);
+export function TrendBars({ title, unit, decimals, baseline, checkIns, read, hideHeading = false, selectionId, onSelect, accessibilitySummary }: TrendBarsProps) {
+  const [internalSelection, setInternalSelection] = useState<string | null>(null);
   const [width, setWidth] = useState(320);
+  const activeSelection = selectionId ?? internalSelection;
+  const select = (checkInId: string) => {
+    if (onSelect) onSelect(checkInId);
+    else setInternalSelection(checkInId);
+  };
   const points = [...checkIns].sort((a, b) => Date.parse(a.recordedAt) - Date.parse(b.recordedAt)).slice(-20)
     .map((entry) => ({ ...entry, value: read(entry) }));
   const values = points.flatMap((point) => hasValue(point.value) ? [point.value] : []);
@@ -44,7 +52,7 @@ export function TrendBars({ title, unit, decimals, baseline, checkIns, read, hid
     ? left + (right - left) * (points.length === 1 ? 0.5 : index / (points.length - 1))
     : left + (Date.parse(points[index].recordedAt) - firstTime) / (lastTime - firstTime) * (right - left);
   const y = (value: number) => bottom - (value - lower) / (upper - lower) * (bottom - top);
-  const selectedIndex = selection ? points.findIndex((point) => point.id === selection) : points.length - 1;
+  const selectedIndex = activeSelection ? points.findIndex((point) => point.id === activeSelection) : points.length - 1;
   const selected = points[selectedIndex >= 0 ? selectedIndex : points.length - 1];
   const timeLabel = (iso: string) => {
     const date = new Date(iso);
@@ -75,6 +83,7 @@ export function TrendBars({ title, unit, decimals, baseline, checkIns, read, hid
   const tooltipTop = Math.max(2, selectedY - 64);
   const delta = selected?.value != null ? selected.value - baseline : null;
   const selectedReview = review(selected?.value ?? null);
+  const chartSummary = accessibilitySummary ?? `${title} chart. ${points.length} recorded observation${points.length === 1 ? '' : 's'}. Synthetic baseline ${baseline.toFixed(decimals)} ${unit}. ${selected ? `Selected ${timeLabel(selected.recordedAt)}: ${selected.value == null ? 'no recorded value' : `${selected.value.toFixed(decimals)} ${unit}`}.` : ''}`;
 
   return (
     <View style={styles.wrapper} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
@@ -95,7 +104,7 @@ export function TrendBars({ title, unit, decimals, baseline, checkIns, read, hid
             <Text style={[styles.legendText, styles.units]}>UNITS: {unit.toUpperCase()}</Text>
           </View>
 
-          <View style={[styles.canvas, { height: CHART_HEIGHT }]}>
+          <View style={[styles.canvas, { height: CHART_HEIGHT }]} accessible accessibilityRole="image" accessibilityLabel={chartSummary}>
             <Svg width="100%" height={CHART_HEIGHT}>
               <Defs>
                 <SvgLinearGradient id={`area-${title.replaceAll(' ', '-')}`} x1="0" x2="0" y1="0" y2="1">
@@ -130,7 +139,7 @@ export function TrendBars({ title, unit, decimals, baseline, checkIns, read, hid
                 <Circle key={point.id} cx={x(index)} cy={y(point.value)} r={selected?.id === point.id ? 5.5 : 3.6}
                   fill={review(point.value) ? colors.accent[400] : colors.primary[400]}
                   stroke="#091624" strokeWidth={2}
-                  {...svgPress(() => setSelection(point.id))} />
+                  {...svgPress(() => select(point.id))} />
               ) : null)}
 
               {points.length === 1 ? <SvgText x={(left + right) / 2} y={CHART_HEIGHT - 10} textAnchor="middle" fontSize={9} fill={colors.primary[400]}>{timeLabel(points[0].recordedAt)}</SvgText> : null}
@@ -138,7 +147,7 @@ export function TrendBars({ title, unit, decimals, baseline, checkIns, read, hid
               {points.length > 1 ? <SvgText x={right} y={CHART_HEIGHT - 10} textAnchor="end" fontSize={9} fill={colors.primary[400]}>{timeLabel(points.at(-1)!.recordedAt)}</SvgText> : null}
             </Svg>
 
-            {selection && selected ? <View pointerEvents="none" style={[
+            {((selectionId !== undefined && selected) || (selectionId === undefined && internalSelection)) && selected ? <View pointerEvents="none" style={[
               styles.tooltip,
               { left: tooltipLeft, top: tooltipTop },
               selectedReview && styles.tooltipReview,
@@ -162,7 +171,7 @@ export function TrendBars({ title, unit, decimals, baseline, checkIns, read, hid
             {points.map((point, index) => (
               <Pressable key={point.id} accessibilityRole="radio" aria-checked={selected?.id === point.id}
                 accessibilityLabel={title + ', ' + formatTimestamp(point.recordedAt) + ', ' + (point.value ?? 'missing') + ' ' + unit}
-                onPress={() => setSelection(point.id)} onHoverIn={() => setSelection(point.id)} hitSlop={4}
+                onPress={() => select(point.id)} onHoverIn={() => { if (!onSelect) setInternalSelection(point.id); }} hitSlop={4}
                 style={[styles.point, selected?.id === point.id && styles.active]}>
                 <Text style={[styles.pointLabel, selected?.id === point.id && styles.pointLabelActive]}>{point.recordedAt.slice(8, 10)} {point.recordedAt.slice(5, 7)}</Text>
                 <Text style={[styles.pointValue, review(point.value) && { color: colors.accent[400] }]}>{point.value === null ? '—' : point.value.toFixed(decimals)}</Text>

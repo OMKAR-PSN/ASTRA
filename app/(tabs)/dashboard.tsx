@@ -117,6 +117,12 @@ export default function DashboardScreen() {
           </View>
           <PrimaryButton
             variant="secondary"
+            label="Mission Health Replay"
+            onPress={() => router.navigate('/replay')}
+            accessibilityHint="Opens the read-only historical timeline at the latest recorded observation."
+          />
+          <PrimaryButton
+            variant="secondary"
             label="Preview report"
             onPress={() => router.navigate('/report')}
             accessibilityHint="Opens the report preview for the latest check-in. Nothing is sent."

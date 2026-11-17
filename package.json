@@ -16,7 +16,8 @@
     "start": "expo start",
     "start:phone": "expo start --go --lan --clear",
     "start:tunnel": "expo start --go --tunnel --clear",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "test:replay": "node --import ./tests/register-loader.mjs --test tests/replay.test.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",

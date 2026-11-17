@@ -11,6 +11,9 @@
 [![Tests](https://img.shields.io/badge/tests-217%20passing-brightgreen)](#-validation-evidence)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)](tsconfig.json)
 [![Expo SDK](https://img.shields.io/badge/Expo-SDK%2058-000020?logo=expo)](package.json)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-astracare--theta.vercel.app-brightgreen?logo=vercel)](https://astracare-theta.vercel.app/)
+
+**[🌐 Live Demo → astracare-theta.vercel.app](https://astracare-theta.vercel.app/)**
 
 [Features](#-what-we-built) · [Screenshots](#-screenshots) · [Architecture](#-system-architecture) · [Quick Start](#-run-locally) · [Limitations](#-scope--safety)
 
@@ -131,7 +134,13 @@ flowchart TB
 
 ---
 
-## ⚡ Run Locally
+## ⚡ Try It
+
+**Live:** [https://astracare-theta.vercel.app/](https://astracare-theta.vercel.app/) — no install needed, works in any browser.
+
+> Click **Identify Crew Member → Scan Crew QR → Use Demo Crew QR** to load the Avery Rao demo session.
+
+## 🖥 Run Locally
 
 **Prerequisites:** Node.js 22.19+ and npm. Use synthetic data only.
 

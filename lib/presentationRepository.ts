@@ -15,7 +15,7 @@ export function createPresentationRepository(): SessionRepository {
   state = sessionReducer(state, { type: 'confirmReport', checkInId: state.checkIns.at(-1)!.id, createdAt: '2026-11-15T08:05:00.000Z' });
   const copy = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
   return {
-    async load() { return copy({ checkIns: state.checkIns, reports: state.reports }); },
+    async load() { return copy({ checkIns: state.checkIns, reports: state.reports, engagement: state.engagement }); },
     async saveCheckIn(draft, recordedAt) {
       state = sessionReducer(state, { type: 'saveCheckIn', draft: copy(draft), recordedAt });
       return copy(state.checkIns.at(-1)!);
@@ -31,6 +31,14 @@ export function createPresentationRepository(): SessionRepository {
       const updated = report.status === 'acknowledged' ? report : { ...report, ...copy(update) };
       state = { ...state, reports: state.reports.map((item) => item.id === reportId ? updated : item) };
       return copy(updated);
+    },
+    async recordEngagement(kind, recordedAt) {
+      state = sessionReducer(state, { type: 'recordEngagement', kind, recordedAt });
+      return copy(state.engagement);
+    },
+    async setJourneyVisible(visible) {
+      state = sessionReducer(state, { type: 'setJourneyVisible', visible });
+      return copy(state.engagement);
     },
   };
 }

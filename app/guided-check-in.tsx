@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigation, useRouter } from 'expo-router';
 import type { NavigationProp, ParamListBase } from '@react-navigation/native';
-import { ArrowLeft, ArrowRight, CircleCheck, Clock3, ClipboardEdit, Database, HeartPulse, Info, Moon, ShieldCheck, Smile, Thermometer, X } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, CircleCheck, Clock3, ClipboardEdit, Database, HeartPulse, Info, Moon, ShieldCheck, Smile, Sparkles, Thermometer, X } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { AccessibilityInfo, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions, type ViewStyle } from 'react-native';
 
@@ -20,6 +20,7 @@ import { symptomOptions } from '@/fixtures/checkInOptions';
 import { crewProfile } from '@/fixtures/crew';
 import { draftFromForm, emptyFormValues, formHasInput, type CheckInFormValues, type NumericKey } from '@/lib/checkInForm';
 import { DIFFERENCE_THRESHOLD_PERCENT } from '@/lib/comparison';
+import { deriveRoutineProgress, evaluateMilestones } from '@/lib/engagement';
 import { setFormHandoff, takeFormHandoff } from '@/lib/formHandoff';
 import { formatTimestamp } from '@/lib/format';
 import {
@@ -117,7 +118,7 @@ export default function GuidedCheckInScreen() {
   const { width } = useWindowDimensions();
   const desktop = width >= layout.desktopBreakpoint;
   const narrow = width < 820;
-  const { saveCheckIn, checkIns, latestCheckIn } = useSession();
+  const { saveCheckIn, checkIns, latestCheckIn, engagement } = useSession();
   const presentation = usePresentation();
 
   const [initial] = useState(() => takeFormHandoff());
@@ -131,6 +132,14 @@ export default function GuidedCheckInScreen() {
   const [savedRecord, setSavedRecord] = useState<CheckIn | null>(null);
   const [reviewNow, setReviewNow] = useState(() => new Date().toISOString());
   const [exitOpen, setExitOpen] = useState(false);
+
+  const newMilestones = useMemo(() => {
+    if (!savedRecord) return [];
+    const previous = checkIns.filter((item) => item.id !== savedRecord.id);
+    const before = new Set(evaluateMilestones(previous, engagement).filter((item) => item.unlocked).map((item) => item.id));
+    return evaluateMilestones(checkIns, engagement).filter((item) => item.unlocked && !before.has(item.id));
+  }, [checkIns, engagement, savedRecord]);
+  const routineComplete = savedRecord ? deriveRoutineProgress(checkIns, Date.parse(savedRecord.recordedAt)).complete : false;
 
   const pendingAction = useRef<(() => void) | null>(null);
   const bypassLeave = useRef(false);
@@ -274,7 +283,7 @@ export default function GuidedCheckInScreen() {
     leaveWith(() => router.replace('/check-in'));
   };
 
-  const finishAt = (route: '/' | '/dashboard' | '/assessment') => {
+  const finishAt = (route: '/' | '/dashboard' | '/assessment' | '/journey') => {
     leaveWith(() => router.replace(route));
   };
 
@@ -659,6 +668,20 @@ export default function GuidedCheckInScreen() {
                   : 'Saved on this device. It remains available after reload and without a network connection.'}
               </Text>
 
+              <View style={styles.savedJourney}>
+                <View style={styles.savedJourneyIcon}><Sparkles size={16} color={colors.primary[300]} strokeWidth={2} /></View>
+                <View style={styles.savedJourneyCopy}>
+                  <Text accessibilityLiveRegion="polite" style={styles.savedJourneyTitle}>
+                    {routineComplete ? "Today's health routine is complete." : 'This check-in was added to your mission record.'}
+                  </Text>
+                  {newMilestones.length > 0 ? newMilestones.map((milestone) => (
+                    <Text key={milestone.id} style={styles.savedMilestone}>
+                      {`Milestone earned · ${milestone.title}. ${milestone.description}`}
+                    </Text>
+                  )) : <Text style={styles.savedJourneyText}>Milestones recognize check-in days and optional learning only. They never reflect health values or affect your assessment.</Text>}
+                </View>
+              </View>
+
               <View style={styles.savedGrid}>
                 {[
                   { label: 'Heart rate', value: savedRecord.readings.heartRateBpm === null ? null : `${savedRecord.readings.heartRateBpm} bpm` },
@@ -678,6 +701,7 @@ export default function GuidedCheckInScreen() {
               <View style={styles.savedActions}>
                 <PrimaryButton label="View Health Overview" onPress={() => finishAt('/dashboard')} style={styles.actionButton} />
                 <PrimaryButton variant="secondary" label="View Assessment" onPress={() => finishAt('/assessment')} style={styles.actionButton} />
+                <PrimaryButton variant="secondary" label="View Mission Journey" onPress={() => finishAt('/journey')} style={styles.actionButton} />
                 <PrimaryButton variant="secondary" label="Finish" onPress={() => finishAt('/')} style={styles.actionButton} />
               </View>
               <Text style={styles.savedNote}>No report was queued or sent. You can create one from Assessment when you choose.</Text>
@@ -943,6 +967,12 @@ const styles = StyleSheet.create({
   savedTime: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   savedTimeText: { fontFamily: fonts.mono, fontSize: 10, lineHeight: 15, color: colors.slate[400] },
   savedMode: { ...typography.bodySmall, color: colors.slate[300], maxWidth: 720 },
+  savedJourney: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, alignSelf: 'stretch', padding: 12, borderRadius: radius.sm, borderWidth: 1, borderColor: 'rgba(0, 214, 198, 0.26)', backgroundColor: 'rgba(0, 214, 198, 0.07)' },
+  savedJourneyIcon: { width: 30, height: 30, borderRadius: 9, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(0, 214, 198, 0.24)', backgroundColor: stitch.cyanMuted, flexShrink: 0 },
+  savedJourneyCopy: { flex: 1, minWidth: 0, gap: 3 },
+  savedJourneyTitle: { fontFamily: fonts.semibold, fontSize: 13, lineHeight: 19, color: colors.offWhite },
+  savedMilestone: { fontFamily: fonts.semibold, fontSize: 12, lineHeight: 18, color: colors.success[400] },
+  savedJourneyText: { ...typography.meta, fontSize: 10.5, lineHeight: 15, color: colors.slate[400] },
   savedGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignSelf: 'stretch' },
   savedCell: {
     flexBasis: 130,

@@ -1,7 +1,7 @@
-import { useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { Platform, StyleSheet, Text, TextInput, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { Activity, ClipboardList, Database, FileText, Info, Moon, ShieldCheck, Smile, Thermometer } from 'lucide-react-native';
+import { Activity, ClipboardList, Database, FileText, Info, Moon, ShieldCheck, Smile, Sparkles, Thermometer } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 
 import { NumericField } from '@/components/NumericField';
@@ -16,6 +16,7 @@ import { demoReadings, symptomOptions } from '@/fixtures/checkInOptions';
 import { crewProfile } from '@/fixtures/crew';
 import { draftFromForm, emptyNumericTexts, emptySubjective, textsFrom, type NumericKey, type NumericTexts } from '@/lib/checkInForm';
 import { DIFFERENCE_THRESHOLD_PERCENT } from '@/lib/comparison';
+import { deriveRoutineProgress, evaluateMilestones } from '@/lib/engagement';
 import { formatTimestamp } from '@/lib/format';
 import { setFormHandoff, takeFormHandoff } from '@/lib/formHandoff';
 import { validateDraft, type DraftErrors } from '@/lib/validation';
@@ -48,7 +49,7 @@ export default function CheckInScreen() {
   const { width } = useWindowDimensions();
   const desktop = width >= layout.desktopBreakpoint;
   const narrow = width < 820;
-  const { saveCheckIn, checkIns, latestCheckIn } = useSession();
+  const { saveCheckIn, checkIns, latestCheckIn, engagement } = useSession();
 
   const [texts, setTexts] = useState<NumericTexts>(() => ({ ...emptyNumericTexts }));
   const [scales, setScales] = useState<Pick<Readings, 'mood' | 'stress'>>(() => ({ ...emptySubjective }));
@@ -59,6 +60,14 @@ export default function CheckInScreen() {
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  const newMilestones = useMemo(() => {
+    if (!saved || !latestCheckIn) return [];
+    const previous = checkIns.filter((item) => item.id !== latestCheckIn.id);
+    const before = new Set(evaluateMilestones(previous, engagement).filter((item) => item.unlocked).map((item) => item.id));
+    return evaluateMilestones(checkIns, engagement).filter((item) => item.unlocked && !before.has(item.id));
+  }, [checkIns, engagement, saved, latestCheckIn]);
+  const routineComplete = saved && latestCheckIn ? deriveRoutineProgress(checkIns, Date.parse(latestCheckIn.recordedAt)).complete : false;
 
   useFocusEffect(useCallback(() => {
     const handoff = takeFormHandoff();
@@ -261,10 +270,24 @@ export default function CheckInScreen() {
                   : 'Saving stores this observation on this device. Nothing is transmitted by saving alone.'}
               </Text>
             </View>
+            {saved ? (
+              <View style={styles.saveJourney}>
+                <Sparkles size={15} color={colors.primary[300]} strokeWidth={2} />
+                <View style={styles.saveJourneyCopy}>
+                  <Text accessibilityLiveRegion="polite" style={styles.saveJourneyTitle}>
+                    {routineComplete ? "Today's health routine is complete." : 'This check-in was added to your mission record.'}
+                  </Text>
+                  {newMilestones.length > 0 ? newMilestones.map((milestone) => (
+                    <Text key={milestone.id} style={styles.saveMilestone}>{`Milestone earned · ${milestone.title}. ${milestone.description}`}</Text>
+                  )) : <Text style={styles.saveJourneyText}>Milestones recognize check-in days and optional learning only. They never reflect reading values.</Text>}
+                </View>
+              </View>
+            ) : null}
             <View style={styles.saveActions}>
               {saved && savedAt ? <StatusPill label={`Saved locally · ${savedAt} UTC`} tone="success" /> : null}
               {saved ? <PrimaryButton variant="secondary" label="View dashboard" onPress={() => router.navigate('/dashboard')} /> : null}
               {saved ? <PrimaryButton variant="secondary" label="View assessment" onPress={() => router.navigate('/assessment')} /> : null}
+              {saved ? <PrimaryButton variant="secondary" label="View mission journey" onPress={() => router.navigate('/journey')} /> : null}
               <PrimaryButton label={saving ? 'Saving check-in…' : 'Save demo check-in'} disabled={saving} onPress={save} />
             </View>
           </Surface>
@@ -403,6 +426,11 @@ const styles = StyleSheet.create({
   saveCopy: { gap: 3 },
   saveTitle: { ...typography.cardTitle, color: colors.offWhite },
   saveMeta: { ...typography.meta, color: colors.slate[400] },
+  saveJourney: { flexDirection: 'row', alignItems: 'flex-start', gap: 9, padding: 10, borderRadius: radius.sm, borderWidth: 1, borderColor: 'rgba(0, 214, 198, 0.24)', backgroundColor: 'rgba(0, 214, 198, 0.06)' },
+  saveJourneyCopy: { flex: 1, minWidth: 0, gap: 3 },
+  saveJourneyTitle: { fontFamily: fonts.semibold, fontSize: 12, lineHeight: 18, color: colors.offWhite },
+  saveMilestone: { fontFamily: fonts.semibold, fontSize: 11.5, lineHeight: 17, color: colors.success[400] },
+  saveJourneyText: { ...typography.meta, fontSize: 10.5, lineHeight: 15, color: colors.slate[400] },
   saveActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', gap: 10 },
 
   sidePanel: { padding: 16, gap: 12, borderColor: 'rgba(141, 187, 255, 0.14)' },

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useRouter } from 'expo-router';
-import { Activity, ArrowRight, ArrowUpRight, ChartNoAxesCombined, ChevronRight, ClipboardList, Database, HeartPulse, Info, Moon, ShieldCheck, Smile, Thermometer, Zap } from 'lucide-react-native';
+import { Activity, ArrowRight, ArrowUpRight, ChartNoAxesCombined, ChevronRight, ClipboardList, Database, Eye, HeartPulse, Info, Moon, ShieldCheck, Smile, Sparkles, Thermometer, Zap } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image, Linking, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions, type ViewStyle } from 'react-native';
@@ -16,10 +16,12 @@ import { TrendBars } from '@/components/TrendBars';
 import { colors, fonts, layout, radius, type as typography } from '@/constants/theme';
 import { crewProfile, syntheticBaseline } from '@/fixtures/crew';
 import { buildReadingTiles, type ReadingStatus } from '@/lib/readingTiles';
-import { checkInStreak } from '@/lib/checkInStreak';
+import { buildJourneySummary } from '@/lib/engagement';
 import { DIFFERENCE_THRESHOLD_PERCENT, formatSigned } from '@/lib/comparison';
 import { formatTimestamp } from '@/lib/format';
+import { useUtcClock } from '@/hooks/useUtcClock';
 import { createReportSnapshot } from '@/lib/snapshot';
+import { usePresentation } from '@/state/PresentationSession';
 import { useSession } from '@/state/SessionProvider';
 
 const PLANNED_DEMO_MISSION_DAYS = 240;
@@ -41,8 +43,14 @@ export default function MissionHomeScreen() {
   const { width } = useWindowDimensions();
   const desktop = width >= layout.desktopBreakpoint;
   const sixCards = width >= 1360;
-  const { latestCheckIn, checkIns, reports, linkAvailable } = useSession();
-  const streak = checkInStreak(checkIns);
+  const { latestCheckIn, checkIns, reports, linkAvailable, engagement, setJourneyVisible } = useSession();
+  const { active: demoActive } = usePresentation();
+  const now = useUtcClock();
+  const journey = useMemo(
+    () => buildJourneySummary({ checkIns, engagement, referenceTime: now }),
+    [checkIns, engagement, now],
+  );
+  const nextMilestone = journey.milestones.find((milestone) => !milestone.unlocked) ?? null;
   const pendingCount = reports.filter((report) => report.status !== 'acknowledged').length;
   const acknowledgedCount = reports.filter((report) => report.status === 'acknowledged').length;
   const assessment = useMemo(() => latestCheckIn ? createReportSnapshot(latestCheckIn) : null, [latestCheckIn]);
@@ -153,8 +161,8 @@ export default function MissionHomeScreen() {
               <Text style={styles.factValue}>{PLANNED_DEMO_MISSION_DAYS} days</Text>
             </View>
             <View style={styles.fact}>
-              <Text style={styles.factLabel}>CHECK-IN ROUTINE</Text>
-              <Text style={styles.factValue}>{streak} {streak === 1 ? 'day' : 'days'}</Text>
+              <Text style={styles.factLabel}>CHECK-IN DAYS</Text>
+              <Text style={styles.factValue}>{journey.distinctDays} {journey.distinctDays === 1 ? 'day' : 'days'}</Text>
             </View>
             <View style={styles.fact}>
               <Text style={styles.factLabel}>MISSION PHASE</Text>
@@ -185,6 +193,37 @@ export default function MissionHomeScreen() {
           </View>
         </View>
       </Surface>
+
+      {engagement.journeyVisible ? (
+        <Surface variant="glass" tone="panel" style={styles.journeyStrip}>
+          <View style={styles.journeyHead}>
+            <View style={styles.inline}>
+              <Sparkles size={15} color={colors.primary[300]} strokeWidth={2.2} />
+              <Text accessibilityRole="header" style={styles.journeyLabel}>MISSION WELLNESS JOURNEY</Text>
+            </View>
+            <StatusPill label={demoActive ? 'Demo session · temporary' : 'Optional participation'} tone={demoActive ? 'accent' : 'primary'} />
+          </View>
+          <View style={[styles.journeyBodyRow, desktop && styles.journeyBodyRowDesktop]}>
+            <View style={styles.journeyCopy}>
+              <Text style={styles.journeyTitle}>
+                {journey.distinctDays === 0 ? 'Your first check-in starts the journey.' : journey.routine.complete ? "Today's health routine is complete." : 'Your next check-in is available whenever you are ready.'}
+              </Text>
+              <Text style={styles.journeyText}>{journey.encouragement}</Text>
+              <View style={styles.journeyMetaRow}>
+                <Text style={styles.journeyMeta}>{`${journey.distinctDays} check-in ${journey.distinctDays === 1 ? 'day' : 'days'} · ${journey.unlockedCount} of ${journey.milestones.length} milestones`}</Text>
+                {nextMilestone ? <Text style={styles.journeyMeta}>{`Current · ${nextMilestone.title}`}</Text> : <Text style={styles.journeyMeta}>All milestones explored</Text>}
+              </View>
+            </View>
+            <PrimaryButton label="Open Mission Journey" onPress={() => router.navigate('/journey')} style={!desktop ? styles.ctaMobile : undefined} />
+          </View>
+          {demoActive ? <Text style={styles.journeyFootnote}>Demo progress is temporary and session-only. Saved device records are unchanged.</Text> : null}
+        </Surface>
+      ) : (
+        <Pressable accessibilityRole="button" onPress={() => { void setJourneyVisible(true); }} style={styles.showJourney}>
+          <Eye size={14} color={colors.primary[300]} strokeWidth={2} />
+          <Text style={styles.showJourneyText}>Show Mission Wellness Journey</Text>
+        </Pressable>
+      )}
 
       <View style={styles.section}>
         {!latestCheckIn ? <Surface variant="glass"><EmptyState title="No check-in saved yet" body="Start a check-in to record observations. No measurements or historical events have been prefilled." /></Surface> : null}
@@ -361,6 +400,20 @@ const styles = StyleSheet.create({
   bannerFooterLabel: { ...typography.label, fontSize: 8.5, color: colors.slate[400] },
   bannerFooterText: { fontFamily: fonts.regular, fontSize: 11.5, lineHeight: 16, color: colors.slate[300] },
   ctaMobile: { width: '100%' },
+
+  journeyStrip: { padding: 18, gap: 12, borderColor: 'rgba(0, 214, 198, 0.22)' },
+  journeyHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' },
+  journeyLabel: { ...typography.label, color: colors.slate[200] },
+  journeyBodyRow: { gap: 14 },
+  journeyBodyRowDesktop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  journeyCopy: { gap: 4, flexShrink: 1, minWidth: 0 },
+  journeyTitle: { ...typography.cardTitle, fontSize: 17, lineHeight: 23, color: colors.offWhite },
+  journeyText: { ...typography.bodySmall, color: colors.slate[300], maxWidth: 820 },
+  journeyMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap', paddingTop: 2 },
+  journeyMeta: { fontFamily: fonts.mono, fontSize: 9, lineHeight: 14, letterSpacing: 0.3, color: colors.slate[400] },
+  journeyFootnote: { ...typography.meta, fontSize: 10, lineHeight: 15, color: colors.slate[500] },
+  showJourney: { minHeight: 44, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 12, borderRadius: radius.sm, borderWidth: 1, borderColor: 'rgba(0, 214, 198, 0.22)', backgroundColor: 'rgba(0, 214, 198, 0.06)' },
+  showJourneyText: { fontFamily: fonts.semibold, fontSize: 12, lineHeight: 17, color: colors.primary[300] },
 
   section: { gap: 12 },
   observationSectionHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' },

@@ -100,7 +100,7 @@ function ReplayContent() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const desktop = width >= layout.desktopBreakpoint;
-  const { checkIns, reports } = useSession();
+  const { checkIns, reports, recordEngagement } = useSession();
   const { active: demoActive } = usePresentation();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -159,6 +159,7 @@ function ReplayContent() {
   const selectFrame = (id: string) => {
     setSelectedId(id);
     setPlaying(false);
+    void recordEngagement('replay-explored');
   };
 
   const togglePlayback = () => {
@@ -167,6 +168,7 @@ function ReplayContent() {
       setPlaying(false);
       return;
     }
+    void recordEngagement('replay-explored');
     if (activeIndex >= frames.length - 1) setSelectedId(frames[0].id);
     setPlaying(true);
   };
@@ -487,7 +489,12 @@ function ReplayContent() {
         <Text style={styles.footnote}>The assessment uses only {activeFrame.checkIn.id}. Values shown as “Earlier value” in the summary above are not merged into this assessment.</Text>
         <View style={styles.cardGrid}>
           {activeFrame.assessment.findings.map((finding) => (
-            <AssessmentCard key={finding.key} finding={finding} thresholdPercent={activeFrame.assessment.thresholdPercent} />
+            <AssessmentCard
+              key={finding.key}
+              finding={finding}
+              thresholdPercent={activeFrame.assessment.thresholdPercent}
+              onCalculationOpen={() => { void recordEngagement('calculation-opened'); }}
+            />
           ))}
         </View>
       </Surface>

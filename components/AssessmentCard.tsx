@@ -33,9 +33,10 @@ const statusIcon: Record<AssessmentStatus, LucideIcon> = {
 type AssessmentCardProps = {
   finding: AssessmentFinding;
   thresholdPercent: number;
+  onCalculationOpen?: () => void;
 };
 
-export function AssessmentCard({ finding, thresholdPercent }: AssessmentCardProps) {
+export function AssessmentCard({ finding, thresholdPercent, onCalculationOpen }: AssessmentCardProps) {
   const [expanded, setExpanded] = useState(false);
   const review = finding.status === 'review';
   const missing = finding.status === 'missing';
@@ -104,7 +105,11 @@ export function AssessmentCard({ finding, thresholdPercent }: AssessmentCardProp
 
         <Pressable
           nativeID={`calculation-toggle-${finding.key}`}
-          onPress={() => setExpanded((current) => !current)}
+          onPress={() => {
+            const next = !expanded;
+            setExpanded(next);
+            if (next) onCalculationOpen?.();
+          }}
           accessibilityRole="button"
           accessibilityState={{ expanded }}
           aria-expanded={expanded}

@@ -58,7 +58,7 @@ function Hero({ lastRecorded }: { lastRecorded: string | null }) {
 export default function AssessmentScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const { latestCheckIn, checkIns } = useSession();
+  const { latestCheckIn, checkIns, recordEngagement } = useSession();
   const { active: demoActive } = usePresentation();
   const [observationOpen, setObservationOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
@@ -165,6 +165,7 @@ export default function AssessmentScreen() {
             key={`${assessment.checkInId}-${finding.key}`}
             finding={finding}
             thresholdPercent={assessment.thresholdPercent}
+            onCalculationOpen={() => { void recordEngagement('calculation-opened'); }}
           />
         ))}
       </View>

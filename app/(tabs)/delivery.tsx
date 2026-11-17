@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { StyleSheet, Switch, Text, View } from 'react-native';
 
@@ -14,7 +15,13 @@ import { useSession } from '@/state/SessionProvider';
 
 export default function DeliveryScreen() {
   const router = useRouter();
-  const { reports, linkAvailable, setLinkAvailable, retryReport, storageDescription } = useSession();
+  const { reports, linkAvailable, setLinkAvailable, retryReport, storageDescription, engagement, recordEngagement } = useSession();
+  const [explained, setExplained] = useState(() => engagement.events.some((event) => event.kind === 'report-explained'));
+
+  const revealExplanation = async () => {
+    setExplained(true);
+    await recordEngagement('report-explained');
+  };
 
   return (
     <ScreenContainer
@@ -42,6 +49,22 @@ export default function DeliveryScreen() {
                 thumbColor={colors.offWhite}
               />
             </View>
+          </Panel>
+        </GridItem>
+
+        <GridItem>
+          <Panel title="How reports are managed">
+            <Text style={styles.footnote}>Reports are created only when you confirm a report preview. Saving a check-in never queues or sends anything.</Text>
+            {explained ? (
+              <View accessibilityLiveRegion="polite" style={styles.explanation}>
+                <Text style={styles.explanationText}>The outbox keeps each report and its delivery status on this device while the simulated link is unavailable.</Text>
+                <Text style={styles.explanationText}>A report becomes acknowledged only after the simulated ground receiver confirms receipt. No acknowledgement is generated locally.</Text>
+                <Text style={styles.explanationText}>Mission Wellness Journey milestones, check-in days, and learning progress are never included in reports or sent to the receiver.</Text>
+                <Text style={styles.explanationStatus}>Report explanation reviewed.</Text>
+              </View>
+            ) : (
+              <PrimaryButton label="Show report explanation" variant="secondary" onPress={() => { void revealExplanation(); }} />
+            )}
           </Panel>
         </GridItem>
 
@@ -104,4 +127,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: colors.slate[300],
   },
+  explanation: { gap: spacing.xs, padding: spacing.sm, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(0, 214, 198, 0.22)', backgroundColor: 'rgba(0, 214, 198, 0.06)' },
+  explanationText: { fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 18, color: colors.slate[200] },
+  explanationStatus: { fontFamily: fonts.semibold, fontSize: 11, lineHeight: 16, color: colors.success[400] },
 });

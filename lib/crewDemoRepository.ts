@@ -1,4 +1,5 @@
 import { buildDemoCheckIns } from '@/fixtures/demoCrew';
+import type { EngagementEventKind } from '@/lib/engagement';
 import type { SessionRepository } from '@/lib/sessionRepositoryContract';
 import { initialSessionState, sessionReducer } from '@/state/sessionReducer';
 import type { CheckIn, CheckInDraft, ReportRecord } from '@/types/astra';
@@ -14,7 +15,7 @@ export function createCrewDemoRepository(seed: CheckIn[] = buildDemoCheckIns()):
 
   return {
     async load() {
-      return copy({ checkIns: state.checkIns, reports: state.reports });
+      return copy({ checkIns: state.checkIns, reports: state.reports, engagement: state.engagement });
     },
 
     async saveCheckIn(draft: CheckInDraft, recordedAt: string) {
@@ -36,6 +37,16 @@ export function createCrewDemoRepository(seed: CheckIn[] = buildDemoCheckIns()):
       const updated = report.status === 'acknowledged' ? report : { ...report, ...copy(update) };
       state = { ...state, reports: state.reports.map((item) => item.id === reportId ? updated : item) };
       return copy(updated);
+    },
+
+    async recordEngagement(kind: EngagementEventKind, recordedAt: string) {
+      state = sessionReducer(state, { type: 'recordEngagement', kind, recordedAt });
+      return copy(state.engagement);
+    },
+
+    async setJourneyVisible(visible: boolean) {
+      state = sessionReducer(state, { type: 'setJourneyVisible', visible });
+      return copy(state.engagement);
     },
   };
 }

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Activity, ChartNoAxesCombined, Clock3, Database, HeartPulse, Moon, ShieldCheck, Zap } from 'lucide-react-native';
+import { Activity, ChartNoAxesCombined, Clock3, Database, HeartPulse, Moon, ShieldCheck, Sparkles, Zap } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 
 import { BodyMap } from '@/components/BodyMap';
@@ -15,7 +15,9 @@ import { TrendBars } from '@/components/TrendBars';
 import { colors, fonts, layout, radius, stitch, type as typography } from '@/constants/theme';
 import { crewProfile, syntheticBaseline } from '@/fixtures/crew';
 import { DIFFERENCE_THRESHOLD_PERCENT, formatSigned } from '@/lib/comparison';
+import { buildJourneySummary } from '@/lib/engagement';
 import { formatReadingValue, formatTimestamp } from '@/lib/format';
+import { useUtcClock } from '@/hooks/useUtcClock';
 import { buildReadingTiles } from '@/lib/readingTiles';
 import { createReportSnapshot } from '@/lib/snapshot';
 import { useSession } from '@/state/SessionProvider';
@@ -40,9 +42,14 @@ export default function DashboardScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const desktop = width >= layout.desktopBreakpoint;
-  const { latestCheckIn, checkIns } = useSession();
+  const { latestCheckIn, checkIns, engagement } = useSession();
+  const now = useUtcClock();
 
   const snapshot = useMemo(() => (latestCheckIn ? createReportSnapshot(latestCheckIn) : null), [latestCheckIn]);
+  const journey = useMemo(
+    () => buildJourneySummary({ checkIns, engagement, referenceTime: now }),
+    [checkIns, engagement, now],
+  );
 
   if (!latestCheckIn || !snapshot) {
     return (
@@ -162,6 +169,23 @@ export default function DashboardScreen() {
           ))}
         </View>
       </Surface>
+
+      {engagement.journeyVisible ? (
+        <Surface tone="panel" style={styles.journeyCard}>
+          <CardHead Icon={Sparkles} title="Mission Wellness Journey" meta="OPTIONAL · PARTICIPATION ONLY" />
+          <View style={[styles.journeyRow, desktop && styles.journeyRowDesktop]}>
+            <View style={styles.journeyCopy}>
+              <Text style={styles.journeyTitle}>
+                {journey.routine.complete ? "Today's health routine is complete." : 'A check-in is available whenever you are ready.'}
+              </Text>
+              <Text style={styles.journeyText}>{journey.encouragement}</Text>
+              <Text style={styles.journeyMeta}>{`${journey.distinctDays} check-in ${journey.distinctDays === 1 ? 'day' : 'days'} · ${journey.unlockedCount} of ${journey.milestones.length} milestones`}</Text>
+            </View>
+            <PrimaryButton variant="secondary" label="Open Mission Journey" onPress={() => router.navigate('/journey')} />
+          </View>
+          <Text style={styles.footnote}>Participation milestones never reflect reading values and do not affect this health record.</Text>
+        </Surface>
+      ) : null}
 
       <View style={[styles.splitRow, desktop && styles.splitRowDesktop]}>
         <Surface tone="panel" style={[styles.chartCard, desktop && styles.chartWide]}>
@@ -288,6 +312,13 @@ const styles = StyleSheet.create({
 
   splitRow: { gap: 16 },
   splitRowDesktop: { flexDirection: 'row', alignItems: 'flex-start' },
+  journeyCard: { padding: 18, gap: 10, borderColor: 'rgba(0, 214, 198, 0.20)' },
+  journeyRow: { gap: 12 },
+  journeyRowDesktop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  journeyCopy: { gap: 4, flexShrink: 1, minWidth: 0 },
+  journeyTitle: { ...typography.cardTitle, color: colors.offWhite },
+  journeyText: { ...typography.bodySmall, color: colors.slate[300], maxWidth: 940 },
+  journeyMeta: { fontFamily: fonts.mono, fontSize: 9, lineHeight: 14, letterSpacing: 0.3, color: colors.slate[400] },
   explanationWide: { flex: 1.5, minWidth: 0 },
   stack: { gap: 16 },
   stackWide: { flex: 1, minWidth: 0 },

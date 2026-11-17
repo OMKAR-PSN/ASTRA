@@ -1,4 +1,5 @@
 import { createReportSnapshot } from '@/lib/snapshot';
+import { DEFAULT_ENGAGEMENT, addEngagementEvent, setJourneyVisibility, type EngagementEventKind, type EngagementState } from '@/lib/engagement';
 import type { CheckIn, CheckInDraft, ReportRecord } from '@/types/astra';
 
 export const RECEIVER_UNAVAILABLE_NOTE = 'Ground receiver unavailable in this prototype.';
@@ -7,6 +8,7 @@ export const LINK_UNAVAILABLE_NOTE = 'Communications link unavailable. The repor
 export type SessionState = {
   checkIns: CheckIn[];
   reports: ReportRecord[];
+  engagement: EngagementState;
   linkAvailable: boolean;
 };
 
@@ -14,11 +16,14 @@ export type SessionAction =
   | { type: 'saveCheckIn'; draft: CheckInDraft; recordedAt: string }
   | { type: 'confirmReport'; checkInId: string; createdAt: string }
   | { type: 'setLinkAvailable'; available: boolean }
+  | { type: 'recordEngagement'; kind: EngagementEventKind; recordedAt: string }
+  | { type: 'setJourneyVisible'; visible: boolean }
   | { type: 'retryReport'; reportId: string };
 
 export const initialSessionState: SessionState = {
   checkIns: [],
   reports: [],
+  engagement: { ...DEFAULT_ENGAGEMENT, events: [] },
   linkAvailable: false,
 };
 
@@ -56,6 +61,12 @@ export function sessionReducer(state: SessionState, action: SessionAction): Sess
 
     case 'setLinkAvailable':
       return { ...state, linkAvailable: action.available };
+
+    case 'recordEngagement':
+      return { ...state, engagement: addEngagementEvent(state.engagement, action.kind, action.recordedAt) };
+
+    case 'setJourneyVisible':
+      return { ...state, engagement: setJourneyVisibility(state.engagement, action.visible) };
 
     case 'retryReport': {
       const retryNote = state.linkAvailable ? RECEIVER_UNAVAILABLE_NOTE : LINK_UNAVAILABLE_NOTE;

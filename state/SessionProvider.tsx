@@ -6,6 +6,7 @@ import { PrimaryButton } from '@/components/PrimaryButton';
 import { colors, fonts, spacing } from '@/constants/theme';
 
 import { receiverUrl, submitReport } from '@/lib/receiver';
+import type { EngagementEventKind } from '@/lib/engagement';
 import type { SessionRepository } from '@/lib/sessionRepositoryContract';
 import { sessionRepository, storageDescription } from '@/lib/sessionRepository';
 import { initialSessionState, type SessionState } from '@/state/sessionReducer';
@@ -20,6 +21,8 @@ type SessionContextValue = SessionState & {
   confirmReport: (checkInId: string) => Promise<void>;
   setLinkAvailable: (available: boolean) => void;
   retryReport: (reportId: string) => void;
+  recordEngagement: (kind: EngagementEventKind) => Promise<void>;
+  setJourneyVisible: (visible: boolean) => Promise<void>;
 };
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -37,7 +40,7 @@ export function SessionProvider({ children, repository = sessionRepository, stor
     setLoadError(null);
     repository.load().then((saved) => {
       if (active) {
-        setState((current) => ({ ...current, checkIns: saved.checkIns, reports: saved.reports }));
+        setState((current) => ({ ...current, checkIns: saved.checkIns, reports: saved.reports, engagement: saved.engagement }));
         setReady(true);
       }
     }).catch(() => {
@@ -64,6 +67,17 @@ export function SessionProvider({ children, repository = sessionRepository, stor
   const setLinkAvailable = useCallback((available: boolean) => {
     setState((current) => ({ ...current, linkAvailable: available }));
   }, []);
+
+  const recordEngagement = useCallback(async (kind: EngagementEventKind) => {
+    if (!state.engagement.journeyVisible || state.engagement.events.some((event) => event.kind === kind)) return;
+    const engagement = await repository.recordEngagement(kind, new Date().toISOString());
+    setState((current) => ({ ...current, engagement }));
+  }, [state.engagement, repository]);
+
+  const setJourneyVisible = useCallback(async (visible: boolean) => {
+    const engagement = await repository.setJourneyVisible(visible);
+    setState((current) => ({ ...current, engagement }));
+  }, [repository]);
 
   const sending = useRef(new Set<string>());
   const retryReport = useCallback(async (reportId: string) => {
@@ -114,7 +128,9 @@ export function SessionProvider({ children, repository = sessionRepository, stor
     confirmReport,
     setLinkAvailable,
     retryReport,
-  }), [state, ready, saveCheckIn, confirmReport, setLinkAvailable, retryReport, storageLabel]);
+    recordEngagement,
+    setJourneyVisible,
+  }), [state, ready, saveCheckIn, confirmReport, setLinkAvailable, retryReport, recordEngagement, setJourneyVisible, storageLabel]);
 
   if (!ready) {
     return createElement(

@@ -1,6 +1,6 @@
 import { openDatabaseAsync, type SQLiteDatabase } from 'expo-sqlite';
 
-import { emptySession, type SessionRepository, type StoredSession } from '@/lib/sessionRepositoryContract';
+import { emptySession, normalizeStoredSession, type SessionRepository, type StoredSession } from '@/lib/sessionRepositoryContract';
 import { initialSessionState, sessionReducer } from '@/state/sessionReducer';
 
 let database: Promise<SQLiteDatabase> | undefined;
@@ -30,13 +30,13 @@ async function readSession(db: SQLiteDatabase): Promise<StoredSession> {
   const row = await db.getFirstAsync<{ payload: string }>(
     'SELECT payload FROM mission_session WHERE id = 1',
   );
-  return row ? JSON.parse(row.payload) : emptySession();
+  return row ? normalizeStoredSession(JSON.parse(row.payload)) : emptySession();
 }
 
 function writeSession(db: SQLiteDatabase, session: StoredSession) {
   return db.runAsync(
     'INSERT INTO mission_session (id, payload) VALUES (1, ?) ON CONFLICT(id) DO UPDATE SET payload = excluded.payload',
-    JSON.stringify({ checkIns: session.checkIns, reports: session.reports }),
+    JSON.stringify(session),
   );
 }
 
@@ -94,6 +94,30 @@ export const sessionRepository: SessionRepository = {
       if (!report) throw new Error('Check-in was not found.');
       await writeSession(db, updated);
       return report;
+    });
+  },
+
+  recordEngagement(kind, recordedAt) {
+    return queueWrite(async () => {
+      const db = await openStorage();
+      const data = await readSession(db);
+      const updated = sessionReducer({ ...initialSessionState, ...data }, {
+        type: 'recordEngagement', kind, recordedAt,
+      });
+      await writeSession(db, updated);
+      return updated.engagement;
+    });
+  },
+
+  setJourneyVisible(visible) {
+    return queueWrite(async () => {
+      const db = await openStorage();
+      const data = await readSession(db);
+      const updated = sessionReducer({ ...initialSessionState, ...data }, {
+        type: 'setJourneyVisible', visible,
+      });
+      await writeSession(db, updated);
+      return updated.engagement;
     });
   },
 };
